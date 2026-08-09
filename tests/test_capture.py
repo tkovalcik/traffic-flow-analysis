@@ -78,6 +78,8 @@ def test_reconnects_on_live_stream_dropout():
     assert len(frames) == 6
     assert FlakyCapture.opens == 2  # initial + one reconnect
     assert [f.index for f in frames] == list(range(6))  # index survives reconnect
+    assert src.reconnects == 1
+    assert src.read_failures == 1
 
 
 class DeadCapture:
