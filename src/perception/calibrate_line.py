@@ -171,11 +171,19 @@ def propose_lines_for_clip(
     return proposals
 
 
-def render_preview(video: Path, proposals: list[ProposedLine], out_path: Path) -> None:
-    """Draw proposed lines over a frame from the clip for human review."""
+def review_stamp() -> str:
+    """Local-time suffix for review artifacts, e.g. 'aug9_1625' — so files
+    sort chronologically and never overwrite each other."""
+    from datetime import datetime
+
+    now = datetime.now()
+    return f"{now.strftime('%b').lower()}{now.day}_{now.strftime('%H%M')}"
+
+
+def render_line_preview(video: Path, lines: list, out_path: Path) -> None:
+    """Draw counting lines over a mid-clip frame for human review."""
     import cv2
 
-    from src.perception.crossing import parse_line_spec
     from src.perception.render import _draw_line
 
     cap = cv2.VideoCapture(str(video))
@@ -184,10 +192,17 @@ def render_preview(video: Path, proposals: list[ProposedLine], out_path: Path) -
     cap.release()
     if not ok:
         raise RuntimeError(f"could not read a frame from {video}")
-    for proposal in proposals:
-        _draw_line(frame, parse_line_spec(proposal.spec))
+    for line in lines:
+        _draw_line(frame, line)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(str(out_path), frame)
+
+
+def render_preview(video: Path, proposals: list[ProposedLine], out_path: Path) -> None:
+    """Draw proposed lines over a frame from the clip for human review."""
+    from src.perception.crossing import parse_line_spec
+
+    render_line_preview(video, [parse_line_spec(p.spec) for p in proposals], out_path)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -202,11 +217,33 @@ def main(argv: list[str] | None = None) -> None:
     )
     parser.add_argument("--max-frames", type=int, help="Analyze only the first N frames")
     parser.add_argument("--preview", type=Path, help="Write a review image with the lines drawn")
+    parser.add_argument(
+        "--show-config",
+        metavar="CAMERA_ID",
+        help="Skip analysis: render the COMMITTED config lines for this camera "
+        "onto a frame of --video (instant, no model run)",
+    )
     parser.add_argument("--model", default=os.environ.get("YOLO_MODEL", "yolo11n.pt"))
     parser.add_argument(
         "--conf", type=float, default=float(os.environ.get("CONFIDENCE_THRESHOLD", "0.35"))
     )
     args = parser.parse_args(argv)
+
+    if args.show_config:
+        from src.perception.camera_config import load_camera_lines
+
+        lines = load_camera_lines(args.show_config)
+        if not lines:
+            raise SystemExit(f"no configured lines for {args.show_config!r}")
+        out = args.preview or Path(
+            f"outputs/review/{args.show_config}_config_lines_{review_stamp()}.jpg"
+        )
+        render_line_preview(args.video, lines, out)
+        for line in lines:
+            flow = line.flow_direction()
+            print(f"{line.name}: counts {flow.value if flow else 'both directions'}")
+        print(f"preview: {out}")
+        return
 
     proposals = propose_lines_for_clip(
         args.video, TravelDirection(args.up_frame), args.max_frames, args.model, args.conf

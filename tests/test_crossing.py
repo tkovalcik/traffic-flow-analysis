@@ -86,6 +86,16 @@ def test_motion_gate_blocks_opposing_flow():
     assert [e.direction for e in events] == [TravelDirection.EB]
 
 
+def test_flow_direction_identifies_the_single_counted_direction():
+    # The committed tv516 lines: each gated line measures exactly one direction.
+    eb_line = parse_line_spec("0.252,0.458,0.664,0.756:WB:EB:0.585,-0.811")
+    wb_line = parse_line_spec("0.204,0.553,0.042,0.326:EB:WB:-0.812,0.583")
+    assert eb_line.flow_direction() == TravelDirection.EB
+    assert wb_line.flow_direction() == TravelDirection.WB
+    # Ungated lines measure both directions — no single designation.
+    assert parse_line_spec("0.0,0.5,1.0,0.5:EB:WB").flow_direction() is None
+
+
 def test_motion_gate_without_vector_counts_both_ways():
     ungated = parse_line_spec("0.0,0.5,1.0,0.5:WB:EB")
     counter = LineCrossingCounter([ungated])
