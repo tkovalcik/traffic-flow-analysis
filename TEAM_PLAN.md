@@ -20,9 +20,11 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 |---|------|-------|--------|-------|
 | 0.1 | Repo scaffold: gitignore, skeleton, pyproject, submission layout | TK | done | |
 | 0.2 | Course docs downloaded for reference | TK | done | internal-docs (local only) |
-| 0.3 | Camera triage script: scan Caltrans D4 inventory, test streams, thumbnails, CSV report | TK | WIP | stream URLs stay out of git |
-| 0.4 | Run D4 scan, shortlist 2-4 cameras on one corridor | | open | needs 0.3 |
-| 0.5 | GCP: project details, add Chris to IAM, check T4 quota | TK | open | Tom-only |
+| 0.3 | Camera triage script: scan Caltrans D4 inventory, test streams, thumbnails, CSV report | TK | done | stream URLs stay out of git |
+| 0.4 | Run D4 scan, shortlist 2-4 cameras on one corridor | TK | done | 97/194 streams usable; top corridor: I-80 Emeryville/Berkeley (2×1080p) — confirm final picks together |
+| 0.5 | GCP: project set up, Chris on IAM (editor), billing linked, video bucket created | TK | done | spot T4 usable now (us-west1 quota=1); on-demand needs GPUS_ALL_REGIONS request |
+| 0.9 | CONTRIBUTING guide, GitHub Actions CI (ruff+pytest), branch protection on main | TK | done | see CONTRIBUTING.md |
+| 0.10 | GCS bucket for video-clip dataset (us-west1) | TK | done | name in .env (GCS_BUCKET) |
 | 0.6 | Confluent Cloud: cluster + Schema Registry + API keys (check credit expiry) | | open | |
 | 0.7 | Add Chris as GitHub collaborator | TK | open | need username |
 | 0.8 | Verify + document Caltrans usage terms in DATA_SOURCE.md | | open | rubric requires access rules |
@@ -34,11 +36,12 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 | 1.1 | Camera capture module: HLS decode, frame sampling, reconnect handling | | open | |
 | 1.2 | YOLO11n + ByteTrack integration, class filter (car/truck/bus/motorcycle) | | open | |
 | 1.3 | Counting-line config + crossing-event logic (per camera, direction) | | open | |
-| 1.4 | Avro schema for `vehicle.events` + Pydantic model + sample event doc | | open | the event contract — graded |
+| 1.4 | Avro schema for `vehicle.events` + Pydantic model + sample event doc | TK | done | the event contract — graded |
 | 1.5 | Kafka producer (key=camera_id, Schema Registry, idempotent) | TK | open | Tom hand-writes (learning) |
-| 1.6 | Local Kafka docker compose (broker + Schema Registry), smoke test | | open | |
+| 1.6 | Local Kafka docker compose (broker + Schema Registry), smoke test | TK | done | verified: broker healthy, SR responds |
 | 1.7 | Recorder: frames + detection JSONL to disk during capture | | open | golden data = replay + eval |
 | 1.8 | **Golden capture session #1, afternoon commute (~3 PM)** | | open | Mac is fine; do NOT block on GCP |
+| 1.9 | Clip uploader: capture sessions push video clips to the GCS bucket (dataset building) | | open | bucket exists; wire into recorder |
 
 ## Phase 2 — The graded path end-to-end (Mon Aug 11)
 
