@@ -68,3 +68,26 @@ def test_parse_line_spec_roundtrip():
     assert line.p2 == (0.95, 0.55)
     assert line.positive_direction == TravelDirection.EB
     assert line.negative_direction == TravelDirection.WB
+    assert line.expected_motion is None
+
+
+def test_parse_line_spec_with_motion():
+    line = parse_line_spec("0.65,0.38,0.95,0.64:WB:EB:0.643,-0.766")
+    assert line.expected_motion == (0.643, -0.766)
+
+
+def test_motion_gate_blocks_opposing_flow():
+    # Line calibrated for an UP-frame flow (motion 0,-1): a track moving DOWN
+    # across it must not fire, but an up-moving track must.
+    gated = parse_line_spec("0.0,0.5,1.0,0.5:WB:EB:0.0,-1.0")
+    counter = LineCrossingCounter([gated])
+    assert walk(counter, 1, [0.3, 0.45, 0.6, 0.8]) == []  # downward: rejected
+    events = walk(counter, 2, [0.8, 0.6, 0.4, 0.2])  # upward: counted
+    assert [e.direction for e in events] == [TravelDirection.EB]
+
+
+def test_motion_gate_without_vector_counts_both_ways():
+    ungated = parse_line_spec("0.0,0.5,1.0,0.5:WB:EB")
+    counter = LineCrossingCounter([ungated])
+    assert len(walk(counter, 3, [0.3, 0.7])) == 1
+    assert len(walk(counter, 4, [0.7, 0.3])) == 1

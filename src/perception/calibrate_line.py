@@ -140,7 +140,9 @@ def propose_line(
     pos = flow_direction if crosses_positive else OPPOSITE[flow_direction]
     neg = OPPOSITE[pos]
 
-    spec = f"{x1:.3f},{y1:.3f},{x2:.3f},{y2:.3f}:{pos.value}:{neg.value}"
+    # The flow's mean motion rides along in the spec so the crossing counter can
+    # motion-gate: only tracks moving with this flow may fire this line.
+    spec = f"{x1:.3f},{y1:.3f},{x2:.3f},{y2:.3f}:{pos.value}:{neg.value}:{mx:.3f},{my:.3f}"
     angle = math.degrees(math.atan2(my, mx))
     return ProposedLine(spec=spec, tracks=len(flow), mean_motion_deg=round(angle, 1))
 
