@@ -1,0 +1,18 @@
+{
+  "type": "record",
+  "name": "TrafficAlert",
+  "namespace": "trafficflow.alerts",
+  "doc": "One alert derived from windowed vehicle counts or camera liveness. Produced by the stream processor; key = camera_id.",
+  "fields": [
+    {"name": "alert_id", "type": "string"},
+    {"name": "camera_id", "type": "string"},
+    {"name": "alert_type", "type": {"type": "enum", "name": "AlertType", "symbols": ["volume_spike", "volume_drop", "camera_stale"]}},
+    {"name": "ts_alert", "type": {"type": "long", "logicalType": "timestamp-millis"}, "doc": "When the processor raised the alert"},
+    {"name": "window_start", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "window_end", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "direction", "type": ["null", {"type": "enum", "name": "AlertDirection", "symbols": ["NB", "SB", "EB", "WB"]}], "default": null, "doc": "Null for camera-level alerts"},
+    {"name": "observed_count", "type": ["null", "long"], "default": null},
+    {"name": "baseline", "type": ["null", "double"], "default": null, "doc": "EWMA baseline the observation was compared against"},
+    {"name": "message", "type": "string"}
+  ]
+}

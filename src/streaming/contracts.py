@@ -75,7 +75,58 @@ class VehicleEvent(BaseModel):
         return cls(**d)
 
 
+class AlertType(StrEnum):
+    volume_spike = "volume_spike"
+    volume_drop = "volume_drop"
+    camera_stale = "camera_stale"
+
+
+class TrafficAlert(BaseModel):
+    """One alert from windowed counts or camera liveness (topic: traffic.alerts)."""
+
+    alert_id: str = Field(default_factory=lambda: str(uuid4()))
+    camera_id: str
+    alert_type: AlertType
+    ts_alert: datetime
+    window_start: datetime
+    window_end: datetime
+    direction: TravelDirection | None = None
+    observed_count: int | None = None
+    baseline: float | None = None
+    message: str
+
+    @field_validator("ts_alert", "window_start", "window_end")
+    @classmethod
+    def require_timezone(cls, v: datetime) -> datetime:
+        if v.tzinfo is None:
+            raise ValueError("timestamps must be timezone-aware (use UTC)")
+        return v.astimezone(UTC)
+
+    def to_avro_dict(self) -> dict:
+        """Dict shaped for the Avro serializer (timestamps → epoch millis)."""
+        d = self.model_dump()
+        for key in ("ts_alert", "window_start", "window_end"):
+            d[key] = int(getattr(self, key).timestamp() * 1000)
+        d["alert_type"] = self.alert_type.value
+        d["direction"] = self.direction.value if self.direction else None
+        return d
+
+    @classmethod
+    def from_avro_dict(cls, d: dict) -> TrafficAlert:
+        """Inverse of to_avro_dict (epoch millis → aware datetimes)."""
+        d = dict(d)
+        for key in ("ts_alert", "window_start", "window_end"):
+            if isinstance(d.get(key), (int, float)):
+                d[key] = datetime.fromtimestamp(d[key] / 1000, tz=UTC)
+        return cls(**d)
+
+
+def contract_fields_match(schema_name: str, model: type[BaseModel]) -> bool:
+    """True when an .avsc field set equals the Pydantic model's — used by tests."""
+    avro_fields = {f["name"] for f in json.loads(load_avro_schema_str(schema_name))["fields"]}
+    return avro_fields == set(model.model_fields)
+
+
 def avro_and_pydantic_field_names_match() -> bool:
     """True when the .avsc field set equals VehicleEvent's — used by tests."""
-    avro_fields = {f["name"] for f in json.loads(load_avro_schema_str())["fields"]}
-    return avro_fields == set(VehicleEvent.model_fields)
+    return contract_fields_match("vehicle_event", VehicleEvent)
