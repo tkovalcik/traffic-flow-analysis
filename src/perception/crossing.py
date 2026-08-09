@@ -24,6 +24,11 @@ class CountingLine:
 
     A track crossing from the line's negative half-plane to the positive one is
     labeled `positive_direction`, the reverse `negative_direction`.
+
+    `expected_motion` (optional unit-ish vector) restricts the line to the flow
+    it was calibrated for: crossings by tracks moving against it are ignored.
+    Per-flow lines need this — the far-away opposite flow can geometrically
+    cross a line meant for the near flow and would otherwise miscount.
     """
 
     name: str
@@ -31,6 +36,7 @@ class CountingLine:
     p2: tuple[float, float]
     positive_direction: TravelDirection
     negative_direction: TravelDirection
+    expected_motion: tuple[float, float] | None = None
 
     def side(self, point: tuple[float, float]) -> float:
         """Signed cross product: >0 left of p1→p2, <0 right, ~0 on the line."""
@@ -54,9 +60,13 @@ class LineCrossingCounter:
     epsilon: float = SIDE_EPSILON
     # (line_name, track_id) -> last confident side sign (+1.0 / -1.0)
     _last_side: dict[tuple[str, int], float] = field(default_factory=dict)
+    # track_id -> previous position, for motion-gating
+    _last_pos: dict[int, tuple[float, float]] = field(default_factory=dict)
 
     def update(self, track_id: int, center: tuple[float, float]) -> list[Crossing]:
         """Feed one tracked position; return crossings it completed (usually 0-1)."""
+        prev_pos = self._last_pos.get(track_id)
+        self._last_pos[track_id] = center
         crossings = []
         for line in self.lines:
             s = line.side(center)
@@ -65,21 +75,44 @@ class LineCrossingCounter:
             sign = 1.0 if s > 0 else -1.0
             key = (line.name, track_id)
             prev = self._last_side.get(key)
-            if prev is not None and prev != sign:
+            if prev is not None and prev != sign and self._motion_ok(line, prev_pos, center):
                 direction = line.positive_direction if sign > 0 else line.negative_direction
                 crossings.append(Crossing(track_id, line.name, direction))
             self._last_side[key] = sign
         return crossings
 
+    @staticmethod
+    def _motion_ok(
+        line: CountingLine,
+        prev_pos: tuple[float, float] | None,
+        center: tuple[float, float],
+    ) -> bool:
+        """Motion gate: the step must not oppose the line's calibrated flow."""
+        if line.expected_motion is None or prev_pos is None:
+            return True
+        step = (center[0] - prev_pos[0], center[1] - prev_pos[1])
+        mx, my = line.expected_motion
+        return step[0] * mx + step[1] * my > 0
+
 
 def parse_line_spec(spec: str) -> CountingLine:
-    """Parse 'x1,y1,x2,y2:POS:NEG' (e.g. '0.05,0.55,0.95,0.55:EB:WB')."""
-    coords, pos, neg = spec.split(":")
+    """Parse 'x1,y1,x2,y2:POS:NEG[:mx,my]'.
+
+    The optional trailing mx,my is the expected flow motion for motion-gating
+    (e.g. '0.65,0.38,0.95,0.64:WB:EB:0.64,-0.77').
+    """
+    parts = spec.split(":")
+    coords, pos, neg = parts[0], parts[1], parts[2]
     x1, y1, x2, y2 = (float(v) for v in coords.split(","))
+    motion = None
+    if len(parts) > 3:
+        mx, my = (float(v) for v in parts[3].split(","))
+        motion = (mx, my)
     return CountingLine(
         name=f"line_{pos}_{neg}",
         p1=(x1, y1),
         p2=(x2, y2),
         positive_direction=TravelDirection(pos),
         negative_direction=TravelDirection(neg),
+        expected_motion=motion,
     )

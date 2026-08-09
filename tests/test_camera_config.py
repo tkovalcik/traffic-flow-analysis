@@ -9,11 +9,14 @@ from src.streaming.contracts import TravelDirection
 
 def test_committed_config_parses_for_validation_camera():
     lines = load_camera_lines("tva43", DEFAULT_CONFIG_PATH)
-    assert lines is not None and len(lines) == 1
-    line = lines[0]
-    assert line.positive_direction == TravelDirection.WB
-    assert line.negative_direction == TravelDirection.EB
-    assert 0.5 < line.p1[1] < 0.8  # calibrated below mid-frame
+    assert lines is not None and len(lines) == 2  # one motion-calibrated line per flow
+    for line in lines:
+        assert {line.positive_direction, line.negative_direction} == {
+            TravelDirection.EB,
+            TravelDirection.WB,
+        }
+        for x, y in (line.p1, line.p2):
+            assert 0.0 <= x <= 1.0 and 0.0 <= y <= 1.0
 
 
 def test_unknown_camera_returns_none():
