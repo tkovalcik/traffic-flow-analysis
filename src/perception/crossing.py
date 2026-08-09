@@ -44,6 +44,20 @@ class CountingLine:
         px, py = point
         return (x2 - x1) * (py - y1) - (y2 - y1) * (px - x1)
 
+    def flow_direction(self) -> TravelDirection | None:
+        """The single direction a motion-gated line counts, or None if ungated.
+
+        A gated line only ever fires for its calibrated flow, and that flow
+        always crosses onto the same side — so the line measures exactly one
+        direction: the label of the side its expected motion crosses toward.
+        """
+        if self.expected_motion is None:
+            return None
+        (x1, y1), (x2, y2) = self.p1, self.p2
+        mx, my = self.expected_motion
+        crosses_positive = (x2 - x1) * my - (y2 - y1) * mx > 0
+        return self.positive_direction if crosses_positive else self.negative_direction
+
 
 @dataclass
 class Crossing:

@@ -85,14 +85,22 @@ def _draw_line(frame: np.ndarray, line: CountingLine) -> None:
     p1 = (int(line.p1[0] * w), int(line.p1[1] * h))
     p2 = (int(line.p2[0] * w), int(line.p2[1] * h))
     cv2.line(frame, p1, p2, LINE_COLOR, 2, cv2.LINE_AA)
-    # Direction labels sit on their own side of the line: crossing toward a
-    # label means traveling in that label's direction. Unit normal (-ly, lx)
-    # points into the line's positive half-plane.
     mid_x, mid_y = (p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2
     lx, ly = p2[0] - p1[0], p2[1] - p1[1]
     norm = (lx**2 + ly**2) ** 0.5 or 1.0
-    nx, ny = -ly / norm, lx / norm
+    nx, ny = -ly / norm, lx / norm  # unit normal into the positive half-plane
     offset = max(28, int(0.035 * h))
+
+    flow = line.flow_direction()
+    if flow is not None:
+        # Motion-gated line: it measures exactly ONE direction. Single label,
+        # placed on the side its traffic crosses toward.
+        sign = 1 if flow == line.positive_direction else -1
+        org = (int(mid_x + sign * nx * offset) - 18, int(mid_y + sign * ny * offset) + 8)
+        _outlined_text(frame, flow.value, org, LINE_COLOR)
+        return
+    # Ungated line counts both ways: label each side with the direction a
+    # crossing onto that side is assigned.
     for direction, sign in ((line.positive_direction, 1), (line.negative_direction, -1)):
         org = (int(mid_x + sign * nx * offset) - 18, int(mid_y + sign * ny * offset) + 8)
         _outlined_text(frame, direction.value, org, LINE_COLOR)
