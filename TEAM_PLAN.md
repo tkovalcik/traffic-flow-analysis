@@ -63,7 +63,7 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
 | 3.1 | Confluent Cloud live path (same code, env config swap) | | open | |
-| 3.2 | Dashboard: 15-min counts table + alert feed + camera health (FastAPI) | | open | minimal first |
+| 3.2 | Dashboard: 15-min counts table + alert feed + camera health (FastAPI) | TK | done | minimal version reads output files (`uvicorn src.dashboard.app:app`); corridor strip stays 3.9 |
 | 3.3 | Latency instrumentation: capture→publish→alert, p50/p95 report script | | open | eval evidence + resume |
 | 3.4 | Eval metrics script: count MAE, precision/recall vs labels | | open | |
 | 3.5 | Demo videos rendered offline: annotated vs detections-only side-by-side | | open | presentation punchline |
