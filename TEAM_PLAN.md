@@ -40,7 +40,7 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 | 1.5 | Kafka producer (key=camera_id, Schema Registry, idempotent) | TK | open | Tom hand-writes (learning) |
 | 1.6 | Local Kafka docker compose (broker + Schema Registry), smoke test | TK | done | verified: broker healthy, SR responds |
 | 1.7 | Recorder: frames + detection JSONL to disk during capture | TK | done | record.py (clips+metadata) + detect_track --out (events JSONL) |
-| 1.8 | **Golden capture session #1, afternoon commute (~3 PM)** | | open | Mac is fine; do NOT block on GCP |
+| 1.8 | **Golden capture session #1, afternoon commute (~3 PM)** | | open | one command ready: `uv run python -m src.replay.session --minutes 15 --upload` |
 | 1.9 | Clip uploader: capture sessions push video clips to the GCS bucket (dataset building) | TK | done | record.py --upload; first clips archived 2026-08-09 |
 
 ## Phase 2 — The graded path end-to-end (Mon Aug 11)
