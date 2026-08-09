@@ -133,11 +133,15 @@ def main(argv: list[str] | None = None) -> None:
     for rank, corridor in enumerate(corridors[: args.top], 1):
         total = sum(c.score for c in corridor)
         span = max(km_between(corridor[0], c) for c in corridor)
-        print(f"#{rank}  {corridor[0].route}  ({len(corridor)} cams, ~{span:.0f} km span, "
-              f"score {total:.1f})")
+        print(
+            f"#{rank}  {corridor[0].route}  ({len(corridor)} cams, ~{span:.0f} km span, "
+            f"score {total:.1f})"
+        )
         for c in sorted(corridor, key=lambda c: -c.score):
-            print(f"      {c.camera_id:<8} {c.direction:<5} {c.width}x{c.height:<5} "
-                  f"vehicles:{c.vehicles:<3} {c.place}")
+            print(
+                f"      {c.camera_id:<8} {c.direction:<5} {c.width}x{c.height:<5} "
+                f"vehicles:{c.vehicles:<3} {c.place}"
+            )
         print()
 
 
