@@ -17,9 +17,15 @@ the product, plus disclosed AI-assisted development.
 - **Verification:** ~100 hand-labeled frames; per-frame count MAE and detection
   precision/recall; alert sanity checks on a known-busy segment. Artifacts in
   `evaluation/`.
-- **Known limitations:** low-resolution cameras, night/rain degradation, occlusion
-  at congested moments, class confusion (car vs truck). Counting-line logic
-  mitigates double-counting but depends on tracker id stability.
+- **Known limitations:** low-resolution cameras, occlusion at congested moments,
+  class confusion (car vs truck). Counting-line logic mitigates double-counting
+  but depends on tracker id stability. **Night scenes fail outright**: on ~2 AM
+  captures (2026-08-09) the pretrained detector missed the large majority of
+  passing vehicles (headlight glare, low contrast), so count accuracy is
+  claimed for daylight hours only. A no-training mitigation path is documented
+  as future work (lower confidence threshold, larger inference resolution,
+  larger pretrained variant, contrast preprocessing — TEAM_PLAN 3.13); model
+  fine-tuning on night data is explicitly out of scope for this project.
 - **Fallback:** recorded detection JSONL replay drives the identical downstream
   pipeline (also the graded review path), so the system is fully demonstrable
   without live inference.
