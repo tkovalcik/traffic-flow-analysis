@@ -41,3 +41,6 @@ triage-results/
 .DS_Store
 .idea/
 .vscode/
+
+# Claude Code session exports (may contain internal notes)
+session*.md
