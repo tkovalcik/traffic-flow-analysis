@@ -21,20 +21,29 @@ detected dash is therefore a local measurement of the pixel-per-foot scale at
 its own position, and the full set of dashes constrains a global mapping
 between the image and the (flat) road plane.
 
-## Assumed dash geometry — ⚠️ compare with Tom's research
+## Dash geometry — RESOLVED (Tom's research, 2026-08-09)
 
-| Source | Segment | Gap | Cycle |
+| Context | Segment | Gap | Cycle |
 |---|---|---|---|
-| MUTCD national guidance (Sec. 3A) | 10 ft | 30 ft | 40 ft |
-| Caltrans freeway lane lines (commonly cited from Standard Plans A20A/B) | 12 ft | 36 ft | 48 ft |
+| **California, multi-lane highway, design speed > 45 mph** (our cameras) | **12 ft** | **36 ft** | **48 ft** |
+| MUTCD national default (Sec. 3A) — fallback for other geographies | 10 ft | 30 ft | 40 ft |
 
-I am confident in the MUTCD 10/30 national default; I am **not fully certain**
-of the exact Caltrans detail dimensions (12/36 is my working assumption for CA
-freeways). Regardless of the standards documents, the plan is to **verify
-empirically per site**: measure several dash+gap cycles at the exact camera
-locations in Google Earth aerial imagery (measure tool, ±1 ft). Restriping
-varies in practice; the aerial measurement at our own corridors is the number
-we'd actually calibrate against.
+Tom verified the California-specific standard: 12-foot stripes with 36-foot
+gaps on multi-lane highways designed for over 45 mph. Both our cameras (I-80,
+I-580) qualify, so **48 ft/cycle is our calibration constant**.
+
+Design consequence: dash geometry is a **per-camera configuration**, not a
+constant — `dash_ft` / `gap_ft` live in the camera's ground-plane config with
+geography-based defaults (CA >45 mph multilane → 12/36; generic MUTCD → 10/30),
+so adding an Iowa DOT camera later is a config entry, not a code change.
+
+**No satellite imagery in the calibration path.** The mapping is derived
+entirely from the camera image itself: every visible dash (and dash-to-dash
+cycle) is a 12 ft (48 ft) ruler *at its own image position*, and those rulers
+shrink with distance exactly as perspective dictates — that shrinkage is the
+signal the homography fit consumes. Aerial measurement is demoted to an
+optional diagnostic, used only if the in-image fit residuals suggest the
+striping deviates from standard.
 
 ## Architecture (`src/perception/speed/`)
 
