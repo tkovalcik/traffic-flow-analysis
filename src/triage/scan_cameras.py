@@ -238,20 +238,20 @@ def main(argv: list[str] | None = None) -> int:
         if needle_or_list:
             needles = needle_or_list if isinstance(needle_or_list, list) else [needle_or_list]
             candidates = [
-                c for c in candidates
-                if any(n.lower() in getattr(c, attr).lower() for n in needles)
+                c for c in candidates if any(n.lower() in getattr(c, attr).lower() for n in needles)
             ]
     skipped = len(cameras) - len(candidates)
     if args.limit:
         candidates = candidates[: args.limit]
-    print(f"{len(cameras)} cameras in inventory; probing {len(candidates)} "
-          f"(skipped {skipped} out-of-service/streamless/filtered)")
+    print(
+        f"{len(cameras)} cameras in inventory; probing {len(candidates)} "
+        f"(skipped {skipped} out-of-service/streamless/filtered)"
+    )
 
     results: list[ProbeResult] = []
     pool = ThreadPoolExecutor(max_workers=args.workers)
     pending: set[Future] = {
-        pool.submit(probe_stream, cam, thumb_dir, deadline_s=args.deadline)
-        for cam in candidates
+        pool.submit(probe_stream, cam, thumb_dir, deadline_s=args.deadline) for cam in candidates
     }
     # Overall ceiling: OpenCV serializes stream *opens* behind a global lock, so
     # budget per candidate, not per candidate/worker. The loop exits as soon as
@@ -263,9 +263,11 @@ def main(argv: list[str] | None = None) -> int:
             res = fetch_static_fallback(fut.result(), thumb_dir)
             results.append(res)
             status = "OK " if res.stream_ok else ("img" if res.static_ok else "DEAD")
-            print(f"  [{status}] {res.camera_id:<8} {res.route:<7} {res.direction:<5} "
-                  f"{res.width}x{res.height} @ {res.fps_measured} fps  {res.place}",
-                  flush=True)
+            print(
+                f"  [{status}] {res.camera_id:<8} {res.route:<7} {res.direction:<5} "
+                f"{res.width}x{res.height} @ {res.fps_measured} fps  {res.place}",
+                flush=True,
+            )
     for fut in pending:  # abandoned probes still get a row
         fut.cancel()
 

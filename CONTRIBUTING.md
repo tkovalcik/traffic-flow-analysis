@@ -58,16 +58,22 @@ Three lines are enough:
   deadline; review where it pays, don't ritualize it.
 - Review = pull the branch, run the verify command, skim the diff for surprises.
 
-## CI
+## CI and testing (QC rules)
 
-Every PR runs GitHub Actions (`.github/workflows/ci.yml`): `ruff check` (lint)
-and `pytest` (tests). Red CI = fix before merge, no exceptions. Run both locally
-before pushing:
+Every PR runs GitHub Actions (`.github/workflows/ci.yml`): `ruff check` (lint),
+`ruff format --check` (formatting), and `pytest` (full test suite). Red CI = fix
+before merge, no exceptions — branch protection enforces it. Run locally before
+pushing:
 
 ```bash
-uv run ruff check .
-uv run pytest
+uv run ruff check . && uv run ruff format . && uv run pytest
 ```
+
+**Every feature PR ships with tests.** New logic gets unit tests in `tests/`
+(same PR, not "later"); pure functions and geometry/window/contract logic
+especially — that's where our grade-critical correctness lives. Plumbing that
+can't be unit-tested (live streams, cloud calls) gets a documented manual
+verification step in the PR description instead.
 
 ## Reverting a feature
 
