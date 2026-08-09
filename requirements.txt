@@ -99,6 +99,8 @@ joserfc==1.7.4
     # via authlib
 kiwisolver==1.5.0
     # via matplotlib
+lap==0.5.13
+    # via traffic-flow-analysis
 markupsafe==3.0.3
     # via jinja2
 matplotlib==3.11.1
@@ -110,6 +112,7 @@ networkx==3.6.1
 numpy==2.4.6 ; python_full_version < '3.12'
     # via
     #   contourpy
+    #   lap
     #   matplotlib
     #   opencv-python
     #   pandas
@@ -119,6 +122,7 @@ numpy==2.4.6 ; python_full_version < '3.12'
 numpy==2.5.1 ; python_full_version >= '3.12'
     # via
     #   contourpy
+    #   lap
     #   matplotlib
     #   opencv-python
     #   pandas
