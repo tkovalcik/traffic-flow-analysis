@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "name": "VehicleEvent",
+  "namespace": "trafficflow.events",
+  "doc": "One vehicle crossing a counting line on one camera. Produced by the perception node; key = camera_id.",
+  "fields": [
+    {"name": "event_id", "type": "string", "doc": "UUID, unique per crossing"},
+    {"name": "camera_id", "type": "string", "doc": "Stable camera identifier; also the Kafka message key"},
+    {"name": "ts_event", "type": {"type": "long", "logicalType": "timestamp-millis"}, "doc": "Frame timestamp (event time) of the crossing"},
+    {"name": "ts_publish", "type": {"type": "long", "logicalType": "timestamp-millis"}, "doc": "Producer wall clock at publish; ts_publish - ts_event = pipeline latency component"},
+    {"name": "track_id", "type": "long", "doc": "ByteTrack persistent track id within this camera"},
+    {"name": "vehicle_class", "type": {"type": "enum", "name": "VehicleClass", "symbols": ["car", "truck", "bus", "motorcycle"]}},
+    {"name": "direction", "type": {"type": "enum", "name": "TravelDirection", "symbols": ["NB", "SB", "EB", "WB"]}, "doc": "Travel direction assigned by the counting line that was crossed"},
+    {"name": "confidence", "type": "float", "doc": "Detector confidence at the crossing frame"}
+  ]
+}
