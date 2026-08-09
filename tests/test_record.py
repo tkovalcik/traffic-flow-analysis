@@ -48,8 +48,10 @@ def test_records_clip_with_metadata(camera_with_file_stream, tmp_path):
     assert meta["recorded"]["fps_writer"] == pytest.approx(10.0)
     assert meta["recorded"]["width"] == 64
     assert meta["recorded"]["first_frame_utc"] is not None
-    # Full inventory record rides along for provenance
+    # Full inventory record + fetch provenance ride along
     assert meta["source"]["inventory_record"]["inService"] == "true"
+    assert "inventory_source" in meta["source"]
+    assert "inventory_retrieved_utc" in meta["source"]
 
 
 def test_recorded_clip_is_readable_video(camera_with_file_stream, tmp_path):

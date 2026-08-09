@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import re
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
 from dotenv import load_dotenv
 
@@ -31,6 +32,9 @@ class CameraInfo:
     static_url: str
     in_service: bool
     raw: dict = field(repr=False)
+    # Provenance: where the record came from and when we fetched it.
+    inventory_source: str = ""
+    retrieved_utc: str = ""
 
 
 def _parse_record(cam: dict) -> CameraInfo:
@@ -65,9 +69,12 @@ def fetch_registry(inventory_source: str | None = None) -> dict[str, CameraInfo]
     source = inventory_source or os.environ.get("CCTV_INVENTORY_URL", "")
     if not source:
         raise ValueError("no inventory: set CCTV_INVENTORY_URL in .env or pass a source")
+    retrieved = datetime.now(UTC).isoformat()
     registry: dict[str, CameraInfo] = {}
     for record in load_inventory(source):
         cam = _parse_record(record)
+        cam.inventory_source = source
+        cam.retrieved_utc = retrieved
         registry[cam.camera_id] = cam
     return registry
 

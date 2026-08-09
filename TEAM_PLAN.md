@@ -71,6 +71,7 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 | 3.7 | Pick + label the +3 bonus extension with repro steps | | open | candidate: benchmark table or replay determinism demo |
 | 3.8 | Contribution documentation (this file → report section) | | open | |
 | 3.9 | *Nice-to-have:* corridor status strip on dashboard | | open | only if ahead |
+| 3.11 | *Nice-to-have:* enrich clip metadata with Caltrans RWIS road-weather feed (nearest station per camera) | | open | weather on camera pages is burned into video, not structured; RWIS is the structured source |
 | 3.10 | *Nice-to-have:* TensorRT/ONNX benchmark table on T4 | | open | time-boxed; only if graded items done |
 
 ## Phase 4 — Present & submit (Wed Aug 13 – Thu Aug 14)
