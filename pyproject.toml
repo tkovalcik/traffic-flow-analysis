@@ -1,7 +1,7 @@
 [project]
 name = "traffic-flow-analysis"
 version = "0.1.0"
-description = "Add your description here"
+description = "Real-time vehicle counting from public highway CCTV via Kafka streaming"
 requires-python = ">=3.11"
 dependencies = [
     "confluent-kafka[avro]>=2.15.0",
@@ -20,3 +20,14 @@ dev = [
     "pytest>=9.1.1",
     "ruff>=0.16.2",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
