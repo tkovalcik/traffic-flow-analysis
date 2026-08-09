@@ -1,0 +1,43 @@
+# Internal docs — local/team-private notes, AI context, plans. Never published.
+internal-docs/
+
+# Secrets & local config (stream URLs, API keys live here, never in code)
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Model weights & large artifacts
+*.pt
+*.onnx
+*.engine
+models/
+
+# Captured data (video, frames, recorded sessions) — too large for git;
+# curated small samples live in data/sample/ only
+data/captures/
+data/frames/
+*.mp4
+*.ts
+*.mkv
+
+# Generated outputs (committed expected-output fixtures live in tests/ or data/sample/)
+outputs/*
+!outputs/.gitkeep
+
+# Triage scan results (contain stream URLs)
+triage-results/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
