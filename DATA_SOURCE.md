@@ -31,6 +31,21 @@
   timestamps) leaves the node. Faces/plates are not detectable at these
   resolutions.
 
+## Stream behavior (measured 2026-08-09)
+
+- **Protocol:** HLS over HTTPS from a Wowza media server; single variant per
+  camera (tva43: 720×480 H.264 @ 30 fps, ~570 kbps; tv516: 1920×1080 @ 20 fps).
+  10-second segments with a 3-segment live window → ~30 s of live-edge latency
+  between the moment a frame happens and the moment a client can read it
+  (verified against the cameras' burned-in clocks).
+- **Continuity:** a 15-minute continuous capture (tva43, midday) completed with
+  **0 reconnects, 0 read failures**, all 27,000 expected frames, and a worst
+  inter-frame stall of 9.7 s absorbed by stream buffering with no frame loss.
+  15-minute continuous recording — the standard traffic-engineering count
+  interval — is therefore fully supported. Every recorded clip self-reports
+  `reconnects`, `read_failures`, and `max_interframe_gap_s` in its metadata
+  sidecar, and the capture client auto-reconnects with backoff on dropout.
+
 ## Event schema (contract)
 
 The canonical contract is the Avro schema in `src/streaming/schemas/` (registered
