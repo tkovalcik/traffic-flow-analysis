@@ -25,6 +25,9 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 | 0.5 | GCP: project set up, Chris on IAM (editor), billing linked, video bucket created | TK | done | spot T4 usable now (us-west1 quota=1); on-demand needs GPUS_ALL_REGIONS request |
 | 0.9 | CONTRIBUTING guide, GitHub Actions CI (ruff+pytest), branch protection on main | TK | done | see CONTRIBUTING.md |
 | 0.10 | GCS bucket for video-clip dataset (us-west1) | TK | done | name in .env (GCS_BUCKET) |
+| 0.11 | 15-min capture continuity research | TK | done | VERDICT: fully feasible (0 reconnects over 15 min); evidence in DATA_SOURCE.md + internal-docs/research/ |
+| 0.12 | Scheduled collection: tfa-capture VM records tva43 15 min 6×/day → bucket | TK | done | `scripts/gcp/provision_capture_vm.sh`; ~$13/mo VM + $0.72/mo storage |
+| 0.13 | Direction mapping (EB/WB) verified from daylight frames, both cameras | TK | done | evidence: outputs/review/direction-verification/ |
 | 0.6 | Confluent Cloud: cluster + Schema Registry + API keys | TK | hold | credits ran out; Tom creating fresh account per instructor guidance — local Kafka covers the graded path meanwhile |
 | 0.7 | Add Chris as GitHub collaborator | TK | done | |
 | 0.8 | Verify + document Caltrans usage terms in DATA_SOURCE.md | TK | done | Conditions of Use cited; content generally public domain, no attribution requirement stated |
