@@ -31,7 +31,7 @@ def test_detects_all_dashes():
     dashes = detect_dashes(make_two_dashed_lines(), tophat_px=11, thresh=40)
     assert len(dashes) == 10
     lengths = [d.length_px for d in dashes]
-    assert all(l == pytest.approx(DASH_LEN, abs=4) for l in lengths)
+    assert all(length == pytest.approx(DASH_LEN, abs=4) for length in lengths)
 
 
 def test_chains_group_by_physical_line():
