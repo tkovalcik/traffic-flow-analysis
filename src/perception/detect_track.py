@@ -23,7 +23,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from src.perception.crossing import CountingLine, LineCrossingCounter, parse_line_spec
+from src.perception.camera_config import resolve_lines
+from src.perception.crossing import CountingLine, LineCrossingCounter
 from src.streaming.contracts import TravelDirection, VehicleClass, VehicleEvent
 
 COCO_TO_VEHICLE = {
@@ -43,15 +44,20 @@ class TrackObservation:
     vehicle_class: VehicleClass
     confidence: float
     center: tuple[float, float]  # normalized (cx, cy)
+    box: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)  # normalized xyxy
 
 
-def iter_tracked(
+def iter_frames_tracked(
     video_source: str,
     model_name: str = "yolo11n.pt",
     conf: float = 0.35,
     device: str | None = None,
-) -> Iterator[TrackObservation]:
-    """Run YOLO+ByteTrack over a source, yielding per-frame track observations."""
+):
+    """Run YOLO+ByteTrack, yielding (frame, frame_index, [TrackObservation]) per frame.
+
+    Frames without any tracked vehicle yield an empty observation list, so
+    renderers see every frame.
+    """
     from ultralytics import YOLO
 
     model = YOLO(model_name)
@@ -66,27 +72,42 @@ def iter_tracked(
         verbose=False,
     )
     for frame_index, result in enumerate(results):
+        observations: list[TrackObservation] = []
         boxes = result.boxes
-        if boxes is None or boxes.id is None:
-            continue
-        for box_id, cls_id, box_conf, xywhn in zip(
-            boxes.id.tolist(),
-            boxes.cls.tolist(),
-            boxes.conf.tolist(),
-            boxes.xywhn.tolist(),
-            strict=True,
-        ):
-            vclass = COCO_TO_VEHICLE.get(int(cls_id))
-            if vclass is None:
-                continue
-            cx, cy = float(xywhn[0]), float(xywhn[1])
-            yield TrackObservation(
-                frame_index=frame_index,
-                track_id=int(box_id),
-                vehicle_class=vclass,
-                confidence=float(box_conf),
-                center=(cx, cy),
-            )
+        if boxes is not None and boxes.id is not None:
+            for box_id, cls_id, box_conf, xywhn, xyxyn in zip(
+                boxes.id.tolist(),
+                boxes.cls.tolist(),
+                boxes.conf.tolist(),
+                boxes.xywhn.tolist(),
+                boxes.xyxyn.tolist(),
+                strict=True,
+            ):
+                vclass = COCO_TO_VEHICLE.get(int(cls_id))
+                if vclass is None:
+                    continue
+                observations.append(
+                    TrackObservation(
+                        frame_index=frame_index,
+                        track_id=int(box_id),
+                        vehicle_class=vclass,
+                        confidence=float(box_conf),
+                        center=(float(xywhn[0]), float(xywhn[1])),
+                        box=tuple(float(v) for v in xyxyn),
+                    )
+                )
+        yield result.orig_img, frame_index, observations
+
+
+def iter_tracked(
+    video_source: str,
+    model_name: str = "yolo11n.pt",
+    conf: float = 0.35,
+    device: str | None = None,
+) -> Iterator[TrackObservation]:
+    """Flattened view of iter_frames_tracked: just the track observations."""
+    for _frame, _index, observations in iter_frames_tracked(video_source, model_name, conf, device):
+        yield from observations
 
 
 def clip_time_anchor(metadata_path: Path | None) -> tuple[datetime, float]:
@@ -194,7 +215,7 @@ def main(argv: list[str] | None = None) -> None:
         print(json.dumps(track_stats(args.video, args.model, args.conf), indent=2))
         return
 
-    lines = [parse_line_spec(s) for s in (args.line or [DEFAULT_LINE])]
+    lines = resolve_lines(args.camera, args.line, DEFAULT_LINE)
     events = events_from_video(args.video, args.camera, lines, args.metadata, args.model, args.conf)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w") as fh:
