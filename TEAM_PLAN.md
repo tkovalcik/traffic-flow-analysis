@@ -25,8 +25,8 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 | 0.5 | GCP: project set up, Chris on IAM (editor), billing linked, video bucket created | TK | done | spot T4 usable now (us-west1 quota=1); on-demand needs GPUS_ALL_REGIONS request |
 | 0.9 | CONTRIBUTING guide, GitHub Actions CI (ruff+pytest), branch protection on main | TK | done | see CONTRIBUTING.md |
 | 0.10 | GCS bucket for video-clip dataset (us-west1) | TK | done | name in .env (GCS_BUCKET) |
-| 0.6 | Confluent Cloud: cluster + Schema Registry + API keys (check credit expiry) | | open | |
-| 0.7 | Add Chris as GitHub collaborator | TK | open | need username |
+| 0.6 | Confluent Cloud: cluster + Schema Registry + API keys | TK | hold | credits ran out; Tom creating fresh account per instructor guidance — local Kafka covers the graded path meanwhile |
+| 0.7 | Add Chris as GitHub collaborator | TK | done | |
 | 0.8 | Verify + document Caltrans usage terms in DATA_SOURCE.md | | open | rubric requires access rules |
 
 ## Phase 1 — Perception + producer + first golden data (Sun Aug 10)
@@ -39,9 +39,9 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 | 1.4 | Avro schema for `vehicle.events` + Pydantic model + sample event doc | TK | done | the event contract — graded |
 | 1.5 | Kafka producer (key=camera_id, Schema Registry, idempotent) | TK | open | Tom hand-writes (learning) |
 | 1.6 | Local Kafka docker compose (broker + Schema Registry), smoke test | TK | done | verified: broker healthy, SR responds |
-| 1.7 | Recorder: frames + detection JSONL to disk during capture | | open | golden data = replay + eval |
+| 1.7 | Recorder: frames + detection JSONL to disk during capture | TK | WIP | clip+metadata recorder done; detection JSONL via detect_track --out |
 | 1.8 | **Golden capture session #1, afternoon commute (~3 PM)** | | open | Mac is fine; do NOT block on GCP |
-| 1.9 | Clip uploader: capture sessions push video clips to the GCS bucket (dataset building) | | open | bucket exists; wire into recorder |
+| 1.9 | Clip uploader: capture sessions push video clips to the GCS bucket (dataset building) | TK | done | record.py --upload; first clips archived 2026-08-09 |
 
 ## Phase 2 — The graded path end-to-end (Mon Aug 11)
 
