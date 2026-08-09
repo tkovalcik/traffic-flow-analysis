@@ -110,6 +110,8 @@ def record_clip(
         "source": {
             "stream_url": camera.stream_url,
             "inventory_record": camera.raw,
+            "inventory_source": camera.inventory_source,
+            "inventory_retrieved_utc": camera.retrieved_utc,
         },
         "recorder": "src.replay.record",
     }

@@ -62,6 +62,13 @@ def test_get_camera_is_case_insensitive_and_keeps_raw_record(inventory_path):
     assert cam.raw["location"]["locationName"].startswith("TV516")
 
 
+def test_registry_stamps_fetch_provenance(inventory_path):
+    cam = get_camera("tv516", inventory_path)
+    assert cam.inventory_source == inventory_path
+    assert cam.retrieved_utc  # ISO timestamp of when WE fetched the record
+    assert cam.retrieved_utc.endswith("+00:00")
+
+
 def test_get_camera_unknown_id_raises(inventory_path):
     with pytest.raises(KeyError, match="tv000"):
         get_camera("tv000", inventory_path)
