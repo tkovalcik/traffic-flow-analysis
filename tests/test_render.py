@@ -66,3 +66,21 @@ def test_render_with_no_detections_still_writes_video(tmp_path):
 def test_render_empty_input_raises(tmp_path):
     with pytest.raises(RuntimeError, match="no frames"):
         annotate_stream(iter(()), [LINE], fps=10.0, anchor=ANCHOR, out_path=tmp_path / "x.mp4")
+
+
+@pytest.mark.parametrize("corner", ["tl", "tr", "bl", "br"])
+def test_banner_corners_render(tmp_path, corner):
+    out = tmp_path / f"banner_{corner}.mp4"
+    result = annotate_stream(
+        scripted_frames(3), [LINE], fps=10.0, anchor=ANCHOR, out_path=out, banner_corner=corner
+    )
+    assert result.frames == 3
+
+
+def test_no_banner_mode(tmp_path):
+    out = tmp_path / "clean.mp4"
+    result = annotate_stream(
+        scripted_frames(), [LINE], fps=10.0, anchor=ANCHOR, out_path=out, banner=False
+    )
+    assert result.frames == 12
+    assert result.counts == {"EB": 1}  # counting still works, just not displayed
