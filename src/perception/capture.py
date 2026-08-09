@@ -52,6 +52,9 @@ class FrameSource:
         self.fps_nominal: float = 0.0
         self.width: int = 0
         self.height: int = 0
+        # Continuity telemetry, reset per FrameSource: how flaky was this stream?
+        self.reconnects: int = 0
+        self.read_failures: int = 0
 
     def _open(self) -> bool:
         self.close()
@@ -96,6 +99,7 @@ class FrameSource:
                 # File sources end normally; live streams get reconnected.
                 if not self.url.startswith(("http://", "https://", "rtsp://")):
                     break
+                self.read_failures += 1
                 attempts_left = self._retry_open(attempts_left)
                 if attempts_left is None:
                     break
@@ -110,6 +114,7 @@ class FrameSource:
             time.sleep(self.backoff_s)
             attempts_left -= 1
             if self._open():
+                self.reconnects += 1
                 return attempts_left
         self.close()
         return None

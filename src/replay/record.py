@@ -64,6 +64,8 @@ def record_clip(
     started_mono = time.monotonic()
     frames = 0
     first_ts = last_ts = None
+    max_gap_s = 0.0
+    prev_read_mono: float | None = None
 
     # Bound by content frames (fps * seconds) AND wall clock: live HLS delivers
     # its initial buffer faster than realtime, so frame count alone would over-
@@ -80,6 +82,10 @@ def record_clip(
             first_ts = captured.ts_utc
         writer.write(captured.frame)
         last_ts = captured.ts_utc
+        now_mono = time.monotonic()
+        if prev_read_mono is not None:
+            max_gap_s = max(max_gap_s, now_mono - prev_read_mono)
+        prev_read_mono = now_mono
         frames += 1
         if frames >= int(fps_writer * seconds):
             break
@@ -106,6 +112,9 @@ def record_clip(
             "width": source.width,
             "height": source.height,
             "codec": "mp4v",
+            "reconnects": source.reconnects,
+            "read_failures": source.read_failures,
+            "max_interframe_gap_s": round(max_gap_s, 3),
         },
         "source": {
             "stream_url": camera.stream_url,
