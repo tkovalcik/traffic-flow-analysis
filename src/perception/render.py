@@ -68,21 +68,34 @@ def _open_writer(out_path: Path, fps: float, size: tuple[int, int]) -> tuple[cv2
     raise RuntimeError(f"no usable codec for {out_path}")
 
 
+def _outlined_text(
+    frame: np.ndarray,
+    text: str,
+    org: tuple[int, int],
+    color: tuple[int, int, int],
+    scale: float = 0.8,
+) -> None:
+    """Text with a dark outline so it stays readable over any pavement."""
+    cv2.putText(frame, text, org, cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 0, 0), 4, cv2.LINE_AA)
+    cv2.putText(frame, text, org, cv2.FONT_HERSHEY_SIMPLEX, scale, color, 2, cv2.LINE_AA)
+
+
 def _draw_line(frame: np.ndarray, line: CountingLine) -> None:
     h, w = frame.shape[:2]
     p1 = (int(line.p1[0] * w), int(line.p1[1] * h))
     p2 = (int(line.p2[0] * w), int(line.p2[1] * h))
     cv2.line(frame, p1, p2, LINE_COLOR, 2, cv2.LINE_AA)
-    cv2.putText(
-        frame,
-        f"+{line.positive_direction.value} / -{line.negative_direction.value}",
-        (p1[0] + 4, p1[1] - 6),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.5,
-        LINE_COLOR,
-        1,
-        cv2.LINE_AA,
-    )
+    # Direction labels sit on their own side of the line: crossing toward a
+    # label means traveling in that label's direction. Unit normal (-ly, lx)
+    # points into the line's positive half-plane.
+    mid_x, mid_y = (p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2
+    lx, ly = p2[0] - p1[0], p2[1] - p1[1]
+    norm = (lx**2 + ly**2) ** 0.5 or 1.0
+    nx, ny = -ly / norm, lx / norm
+    offset = max(28, int(0.035 * h))
+    for direction, sign in ((line.positive_direction, 1), (line.negative_direction, -1)):
+        org = (int(mid_x + sign * nx * offset) - 18, int(mid_y + sign * ny * offset) + 8)
+        _outlined_text(frame, direction.value, org, LINE_COLOR)
 
 
 def _draw_box(frame: np.ndarray, obs: TrackObservation, highlighted: bool) -> None:
@@ -105,16 +118,21 @@ def _draw_box(frame: np.ndarray, obs: TrackObservation, highlighted: bool) -> No
     )
 
 
-def _draw_banner(frame: np.ndarray, lines_text: list[str]) -> None:
+def _draw_banner(frame: np.ndarray, lines_text: list[str], corner: str = "tr") -> None:
+    """Semi-transparent info box. Default top-right: Caltrans cameras burn their
+    own timestamp into the top-left/bottom-left, and we must not cover it."""
+    h, w = frame.shape[:2]
+    box_w, box_h = 330, 18 + 20 * len(lines_text)
+    x0 = 0 if corner in ("tl", "bl") else w - box_w
+    y0 = 0 if corner in ("tl", "tr") else h - box_h
     overlay = frame.copy()
-    height = 18 + 20 * len(lines_text)
-    cv2.rectangle(overlay, (0, 0), (330, height), BANNER_COLOR, -1)
+    cv2.rectangle(overlay, (x0, y0), (x0 + box_w, y0 + box_h), BANNER_COLOR, -1)
     cv2.addWeighted(overlay, 0.65, frame, 0.35, 0, frame)
     for i, text in enumerate(lines_text):
         cv2.putText(
             frame,
             text,
-            (10, 22 + 20 * i),
+            (x0 + 10, y0 + 22 + 20 * i),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.55,
             TEXT_COLOR,
@@ -130,6 +148,8 @@ def annotate_stream(
     anchor: datetime,
     out_path: Path,
     camera_id: str = "",
+    banner: bool = True,
+    banner_corner: str = "tr",
 ) -> RenderResult:
     """Write an annotated video from (frame, index, observations) tuples."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -151,9 +171,12 @@ def annotate_stream(
                 counts[crossing.direction.value] = counts.get(crossing.direction.value, 0) + 1
                 highlight_until[obs.track_id] = index + int(fps)
             _draw_box(frame, obs, highlighted=highlight_until.get(obs.track_id, -1) >= index)
-        clock = (anchor + timedelta(seconds=index / fps)).strftime("%Y-%m-%d %H:%M:%SZ")
-        count_text = "  ".join(f"{d}:{n}" for d, n in sorted(counts.items())) or "no crossings yet"
-        _draw_banner(frame, [f"{camera_id}  {clock}", f"counts  {count_text}"])
+        if banner:
+            clock = (anchor + timedelta(seconds=index / fps)).strftime("%Y-%m-%d %H:%M:%SZ")
+            count_text = (
+                "  ".join(f"{d}:{n}" for d, n in sorted(counts.items())) or "no crossings yet"
+            )
+            _draw_banner(frame, [f"{camera_id}  {clock}", f"counts  {count_text}"], banner_corner)
         writer.write(frame)
         frames += 1
 
@@ -182,6 +205,10 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--conf", type=float, default=float(os.environ.get("CONFIDENCE_THRESHOLD", "0.35"))
     )
+    parser.add_argument(
+        "--no-banner", action="store_true", help="Boxes and lines only (class-video mode)"
+    )
+    parser.add_argument("--banner-corner", choices=["tl", "tr", "bl", "br"], default="tr")
     args = parser.parse_args(argv)
 
     anchor, fps = clip_time_anchor(args.metadata)
@@ -196,6 +223,8 @@ def main(argv: list[str] | None = None) -> None:
         anchor,
         out,
         camera_id=args.camera,
+        banner=not args.no_banner,
+        banner_corner=args.banner_corner,
     )
     counts = ", ".join(f"{d}={n}" for d, n in sorted(result.counts.items())) or "none"
     print(
