@@ -1,0 +1,81 @@
+# Team Plan — Traffic Flow Analysis (MSDS 682 Final Project)
+
+**How this works:** pick any `open` task, put your initials in Owner and set Status to
+`WIP`. When finished, set `done`. Add tasks freely. Keep it honest — this doubles as
+our contribution record for the rubric.
+
+**Deadlines:** presentation **Thu Aug 13, 5:30 PM** · report + code ZIP **Fri Aug 14,
+11:59 PM** (late = −10%/day, zero at day 3, so effectively done by Aug 12).
+
+**Grading (20 pts + 3 bonus):** problem & observable result · data doc & event
+contract · architecture & working Kafka path · evidence & reproducibility. The graded
+review path is: clone repo → one command → local Kafka in Docker → replay recorded
+detections → 15-min volume tables + alerts. Everything else is demo/portfolio layer.
+
+Statuses: `open` → `WIP` → `done` (or `skip` with a note).
+
+## Phase 0 — Scaffold & unblock (Sat Aug 9)
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 0.1 | Repo scaffold: gitignore, skeleton, pyproject, submission layout | TK | done | |
+| 0.2 | Course docs downloaded for reference | TK | done | internal-docs (local only) |
+| 0.3 | Camera triage script: scan Caltrans D4 inventory, test streams, thumbnails, CSV report | TK | WIP | stream URLs stay out of git |
+| 0.4 | Run D4 scan, shortlist 2-4 cameras on one corridor | | open | needs 0.3 |
+| 0.5 | GCP: project details, add Chris to IAM, check T4 quota | TK | open | Tom-only |
+| 0.6 | Confluent Cloud: cluster + Schema Registry + API keys (check credit expiry) | | open | |
+| 0.7 | Add Chris as GitHub collaborator | TK | open | need username |
+| 0.8 | Verify + document Caltrans usage terms in DATA_SOURCE.md | | open | rubric requires access rules |
+
+## Phase 1 — Perception + producer + first golden data (Sun Aug 10)
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 1.1 | Camera capture module: HLS decode, frame sampling, reconnect handling | | open | |
+| 1.2 | YOLO11n + ByteTrack integration, class filter (car/truck/bus/motorcycle) | | open | |
+| 1.3 | Counting-line config + crossing-event logic (per camera, direction) | | open | |
+| 1.4 | Avro schema for `vehicle.events` + Pydantic model + sample event doc | | open | the event contract — graded |
+| 1.5 | Kafka producer (key=camera_id, Schema Registry, idempotent) | TK | open | Tom hand-writes (learning) |
+| 1.6 | Local Kafka docker compose (broker + Schema Registry), smoke test | | open | |
+| 1.7 | Recorder: frames + detection JSONL to disk during capture | | open | golden data = replay + eval |
+| 1.8 | **Golden capture session #1, afternoon commute (~3 PM)** | | open | Mac is fine; do NOT block on GCP |
+
+## Phase 2 — The graded path end-to-end (Mon Aug 11)
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 2.1 | Consumer loop + event-time 15-min tumbling windows (+1-min demo windows) | TK | open | Tom hand-writes core (learning) |
+| 2.2 | EWMA baseline + congestion alerts → `traffic.alerts` | | open | |
+| 2.3 | Camera-health staleness alert (no events N min) | | open | |
+| 2.4 | Volume table CSV + alerts JSONL writers | | open | the "useful output" |
+| 2.5 | Replay producer: recorded JSONL → Kafka with original timestamps | | open | |
+| 2.6 | **One-command reviewer demo** (compose up + replay + processor + expected output) | | open | THE graded artifact |
+| 2.7 | Verify reviewer path from a fresh clone in a temp dir | | open | |
+| 2.8 | pytest: crossing logic, window semantics (incl. late events), schema validation | | open | |
+| 2.9 | Eval labeling: split ~100 frames (50/50 TK/CM) | | open | |
+| 2.10 | Deploy perception to GCP VM, scheduled 3:00-7:30 PM captures | | open | |
+
+## Phase 3 — Live layer, evidence, report (Tue Aug 12 — target: everything done)
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 3.1 | Confluent Cloud live path (same code, env config swap) | | open | |
+| 3.2 | Dashboard: 15-min counts table + alert feed + camera health (FastAPI) | | open | minimal first |
+| 3.3 | Latency instrumentation: capture→publish→alert, p50/p95 report script | | open | eval evidence + resume |
+| 3.4 | Eval metrics script: count MAE, precision/recall vs labels | | open | |
+| 3.5 | Demo videos rendered offline: annotated vs detections-only side-by-side | | open | presentation punchline |
+| 3.6 | Report draft (structure per rubric) | | open | |
+| 3.7 | Pick + label the +3 bonus extension with repro steps | | open | candidate: benchmark table or replay determinism demo |
+| 3.8 | Contribution documentation (this file → report section) | | open | |
+| 3.9 | *Nice-to-have:* corridor status strip on dashboard | | open | only if ahead |
+| 3.10 | *Nice-to-have:* TensorRT/ONNX benchmark table on T4 | | open | time-boxed; only if graded items done |
+
+## Phase 4 — Present & submit (Wed Aug 13 – Thu Aug 14)
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| 4.1 | Presentation slides + demo dry-run (replay-driven, sped-up event-time demo) | | open | check for instructor's presentation handout — unpublished as of Aug 9 |
+| 4.2 | Both partners can explain every component (walkthrough session) | | open | rubric requirement |
+| 4.3 | **Present — Thu Aug 13, 5:30 PM** | | open | |
+| 4.4 | report.pdf final, ZIP per required structure, submit on Canvas | | open | both upload if not linked as group |
+| 4.5 | Cloud cleanup: stop VM, document teardown | | open | |
