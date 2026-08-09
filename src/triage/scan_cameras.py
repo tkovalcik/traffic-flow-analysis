@@ -233,7 +233,8 @@ def main(argv: list[str] | None = None) -> int:
 
     cameras = [parse_camera(c) for c in load_inventory(args.inventory)]
     candidates = [c for c in cameras if c.in_service and c.stream_url]
-    for attr, needle_or_list in (("route", args.route), ("county", args.county), ("place", args.place)):
+    filters = (("route", args.route), ("county", args.county), ("place", args.place))
+    for attr, needle_or_list in filters:
         if needle_or_list:
             needles = needle_or_list if isinstance(needle_or_list, list) else [needle_or_list]
             candidates = [
@@ -252,9 +253,10 @@ def main(argv: list[str] | None = None) -> int:
         pool.submit(probe_stream, cam, thumb_dir, deadline_s=args.deadline)
         for cam in candidates
     }
-    # Overall deadline: generous per-batch budget; anything unfinished after it is
-    # a hung ffmpeg read we abandon (bundled ffmpeg can ignore its I/O timeout).
-    overall_deadline = time.monotonic() + args.deadline * (len(candidates) / args.workers + 3)
+    # Overall ceiling: OpenCV serializes stream *opens* behind a global lock, so
+    # budget per candidate, not per candidate/worker. The loop exits as soon as
+    # all probes finish; the ceiling only reaps hung ffmpeg reads at the end.
+    overall_deadline = time.monotonic() + max(120.0, args.deadline * len(candidates))
     while pending and time.monotonic() < overall_deadline:
         done, pending = wait(pending, timeout=10.0, return_when=FIRST_COMPLETED)
         for fut in done:
