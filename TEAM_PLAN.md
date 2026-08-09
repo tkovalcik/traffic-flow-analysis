@@ -33,7 +33,7 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 1.1 | Camera capture module: HLS decode, frame sampling, reconnect handling | | open | |
+| 1.1 | Camera capture module: HLS decode, frame sampling, reconnect handling | TK | done | FrameSource + camera registry, tested |
 | 1.2 | YOLO11n + ByteTrack integration, class filter (car/truck/bus/motorcycle) | | open | |
 | 1.3 | Counting-line config + crossing-event logic (per camera, direction) | | open | |
 | 1.4 | Avro schema for `vehicle.events` + Pydantic model + sample event doc | TK | done | the event contract — graded |
