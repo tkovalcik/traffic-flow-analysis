@@ -70,7 +70,11 @@ def iter_tracked(
         if boxes is None or boxes.id is None:
             continue
         for box_id, cls_id, box_conf, xywhn in zip(
-            boxes.id.tolist(), boxes.cls.tolist(), boxes.conf.tolist(), boxes.xywhn.tolist()
+            boxes.id.tolist(),
+            boxes.cls.tolist(),
+            boxes.conf.tolist(),
+            boxes.xywhn.tolist(),
+            strict=True,
         ):
             vclass = COCO_TO_VEHICLE.get(int(cls_id))
             if vclass is None:
