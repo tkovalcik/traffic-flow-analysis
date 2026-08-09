@@ -1,8 +1,5 @@
 # Data Source
 
-> Status: skeleton — fields are filled in as they are verified. Task 0.8 in
-> TEAM_PLAN.md tracks verifying and citing the exact usage terms.
-
 ## Source
 
 - **What:** Live public highway CCTV streams (California DOT District 4; public
@@ -16,7 +13,16 @@
 
 ## Usage terms & limitations
 
-- [ ] TODO: cite Caltrans terms of use for CCTV imagery and note any restrictions.
+- **Terms:** Caltrans' Conditions of Use (dot.ca.gov "Conditions of Use" page,
+  accessed 2026-08-09) state that website content is generally public domain and
+  "may be distributed or copied as permitted by law," while individually
+  copyrighted items (e.g., photographs) "may require additional permissions."
+  No camera-feed-specific restrictions or attribution requirements are stated.
+- **Our use:** educational/non-commercial coursework. Live video is processed in
+  memory and discarded; we do not rebroadcast streams. A small number of short
+  clips are retained in a private storage bucket solely for evaluation and
+  reproducibility of this project. Published artifacts contain detection
+  metadata (counts, classes, timestamps), not video.
 - Streams are best-effort public infrastructure: cameras go down, change URLs, or
   serve stale images. The pipeline treats a silent camera as a health-alert
   condition, not an error.

@@ -27,7 +27,7 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 | 0.10 | GCS bucket for video-clip dataset (us-west1) | TK | done | name in .env (GCS_BUCKET) |
 | 0.6 | Confluent Cloud: cluster + Schema Registry + API keys | TK | hold | credits ran out; Tom creating fresh account per instructor guidance — local Kafka covers the graded path meanwhile |
 | 0.7 | Add Chris as GitHub collaborator | TK | done | |
-| 0.8 | Verify + document Caltrans usage terms in DATA_SOURCE.md | | open | rubric requires access rules |
+| 0.8 | Verify + document Caltrans usage terms in DATA_SOURCE.md | TK | done | Conditions of Use cited; content generally public domain, no attribution requirement stated |
 
 ## Phase 1 — Perception + producer + first golden data (Sun Aug 10)
 
