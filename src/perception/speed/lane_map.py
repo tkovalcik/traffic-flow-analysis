@@ -246,6 +246,146 @@ def chain_dashes(
     return chains
 
 
+def _step(a: DashBlob, b: DashBlob) -> tuple[float, float]:
+    """Unit vector from dash A's centroid to dash B's."""
+    vx = b.centroid[0] - a.centroid[0]
+    vy = b.centroid[1] - a.centroid[1]
+    norm = math.hypot(vx, vy) or 1.0
+    return (vx / norm, vy / norm)
+
+
+def _axis_angle(step: tuple[float, float], axis: tuple[float, float]) -> float:
+    """Angle between a step vector and an undirected axis, folded into [0, 90]."""
+    angle = _angle_between(step, axis)
+    return min(angle, 180.0 - angle)
+
+
+def link_verdict(a: DashBlob, b: DashBlob, axis_tol_deg: float = 22.0) -> str:
+    """Judge one chain link by parallelism to the dashes' own painted strokes.
+
+    On a real dashed lane line the step from one dash to the next runs the way
+    the paint itself points. good = parallel to both strokes; suspicious =
+    parallel to exactly one (a kink, or an interloper on one side); bad =
+    parallel to neither (this link must not exist).
+    """
+    step = _step(a, b)
+    ok_a = _axis_angle(step, a.axis) <= axis_tol_deg
+    ok_b = _axis_angle(step, b.axis) <= axis_tol_deg
+    if ok_a and ok_b:
+        return "good"
+    if ok_a or ok_b:
+        return "suspicious"
+    return "bad"
+
+
+def _link_deviation(a: DashBlob, b: DashBlob) -> float:
+    """Worst step-vs-stroke angle of a link — 'good' iff <= the axis tolerance."""
+    step = _step(a, b)
+    return max(_axis_angle(step, a.axis), _axis_angle(step, b.axis))
+
+
+def _turn_flags(chain: list[DashBlob], floor_deg: float, mad_k: float) -> list[int]:
+    """Indices of interior dashes whose turning angle is a robust outlier.
+
+    median + k*MAD adapts to genuinely curved roads (where every turning angle
+    is nonzero); the absolute floor keeps perspective-inflated far-field
+    angles from flagging on perfectly straight chains (MAD ~ 0).
+    """
+    if len(chain) < 3:
+        return []
+    steps = [_step(a, b) for a, b in zip(chain, chain[1:], strict=False)]
+    angles = [_angle_between(s1, s2) for s1, s2 in zip(steps, steps[1:], strict=False)]
+    med = float(np.median(angles))
+    mad = float(np.median([abs(t - med) for t in angles]))
+    return [
+        j + 1 for j, theta in enumerate(angles) if theta > floor_deg and theta > med + mad_k * mad
+    ]
+
+
+def filter_chain_consistency(
+    chains: list[list[DashBlob]],
+    axis_tol_deg: float = 22.0,
+    turn_floor_deg: float = 20.0,
+    turn_mad_k: float = 3.0,
+    min_chain: int = 3,
+) -> tuple[list[list[DashBlob]], list[DashBlob]]:
+    """Enforce local sequence consistency inside every chain.
+
+    Primary check: every link must be parallel to its dashes' stroke axes
+    (link_verdict) — this judges endpoint dashes too, via their single link,
+    which turning angle alone cannot see. Secondary: turning-angle outliers at
+    interior dashes. Repairs: eject a dash when its neighbors then reconnect
+    cleanly (it was an interloper), otherwise split the chain at the offending
+    link (it was two different features); an endpoint whose only link can't be
+    repaired is dropped back to unmatched. Each chain runs to a fixpoint.
+    Returns (surviving chains, dropped dashes).
+    """
+    done: list[list[DashBlob]] = []
+    dropped: list[DashBlob] = []
+    work = [list(chain) for chain in chains]
+    while work:
+        cur = work.pop()
+
+        # Endpoint dashes are judged by their single link: a non-good end link
+        # means either the end dash is wrong or its neighbor is an interloper —
+        # eject whichever removal reconnects the chain cleanly.
+        trimming = True
+        while trimming:
+            trimming = False
+            if len(cur) >= 2 and link_verdict(cur[0], cur[1], axis_tol_deg) != "good":
+                if len(cur) >= 3 and link_verdict(cur[0], cur[2], axis_tol_deg) == "good":
+                    dropped.append(cur.pop(1))
+                else:
+                    dropped.append(cur.pop(0))
+                trimming = True
+            if len(cur) >= 2 and link_verdict(cur[-2], cur[-1], axis_tol_deg) != "good":
+                if len(cur) >= 3 and link_verdict(cur[-3], cur[-1], axis_tol_deg) == "good":
+                    dropped.append(cur.pop(-2))
+                else:
+                    dropped.append(cur.pop())
+                trimming = True
+
+        # First interior bad link (both dashes have another neighbor).
+        bad_i = next(
+            (
+                i
+                for i in range(1, len(cur) - 2)
+                if link_verdict(cur[i], cur[i + 1], axis_tol_deg) == "bad"
+            ),
+            None,
+        )
+        if bad_i is not None:
+            i = bad_i
+            # Removing which side of the link reconnects the chain better?
+            dev_drop_i = _link_deviation(cur[i - 1], cur[i + 1])
+            dev_drop_next = _link_deviation(cur[i], cur[i + 2])
+            if min(dev_drop_i, dev_drop_next) <= axis_tol_deg:
+                dropped.append(cur.pop(i if dev_drop_i <= dev_drop_next else i + 1))
+                work.append(cur)
+            else:
+                work.extend([cur[: i + 1], cur[i + 1 :]])
+            continue
+
+        flags = _turn_flags(cur, turn_floor_deg, turn_mad_k)
+        if flags:
+            j = flags[0]
+            if _link_deviation(cur[j - 1], cur[j + 1]) <= axis_tol_deg:
+                dropped.append(cur.pop(j))
+                work.append(cur)
+            elif _link_deviation(cur[j - 1], cur[j]) >= _link_deviation(cur[j], cur[j + 1]):
+                work.extend([cur[:j], cur[j:]])
+            else:
+                work.extend([cur[: j + 1], cur[j + 1 :]])
+            continue
+
+        if len(cur) >= min_chain:
+            done.append(cur)
+        else:
+            dropped.extend(cur)
+    done.sort(key=lambda c: c[0].centroid[0])
+    return done, dropped
+
+
 def _extended_curve_samples(chain: list[DashBlob], degree: int = 2, n: int = 600):
     """Dense (xs, ys, ts, total) of the chain's curve, extrapolated both ways."""
     points = []
@@ -526,6 +666,11 @@ def main() -> None:
         help="Keep chains regardless of parallelism to the best-scoring anchor",
     )
     parser.add_argument(
+        "--no-consistency-filter",
+        action="store_true",
+        help="Skip the link-parallelism / turning-angle chain cleanup",
+    )
+    parser.add_argument(
         "--scene-mask",
         type=Path,
         help="Road-surface mask PNG from scene_mask.py "
@@ -568,7 +713,12 @@ def main() -> None:
             > 0
         ]
         print(f"scene mask {mask_path.name}: {before} -> {len(dashes)} dashes on pavement")
-    chains = chain_dashes(dashes, min_chain=args.min_chain, merge=True)
+    chains = chain_dashes(dashes, min_chain=args.min_chain, merge=False)
+    if args.no_consistency_filter:
+        ejected: list[DashBlob] = []
+    else:
+        chains, ejected = filter_chain_consistency(chains, min_chain=args.min_chain)
+    chains = merge_by_curve(chains)
     if not args.no_parallel_filter:
         chains, rejected = filter_parallel_to_anchor(chains)
     else:
@@ -594,7 +744,8 @@ def main() -> None:
 
     print(
         f"{len(dashes)} dashes -> {len(chains)} lane lines "
-        f"({len(leftovers)} unmatched, {len(rejected)} chains rejected as non-parallel)"
+        f"({len(leftovers)} unmatched, {len(ejected)} ejected as chain-inconsistent, "
+        f"{len(rejected)} chains rejected as non-parallel)"
     )
     for i, chain in enumerate(chains):
         print(f"  lane line {i + 1}: score {chain_score(chain):.0f}")
