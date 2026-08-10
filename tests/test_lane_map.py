@@ -5,9 +5,11 @@ import pytest
 
 from src.perception.speed.lane_map import (
     chain_dashes,
+    chain_score,
     detect_dashes,
     feet_along_curve,
     fit_lane_curve,
+    merge_by_curve,
 )
 
 cv2 = pytest.importorskip("cv2")
@@ -67,3 +69,32 @@ def test_feet_mapping_matches_dash_geometry():
     assert arc_at_12ft == pytest.approx(DASH_LEN, abs=5)
     assert arc_at_60ft == pytest.approx(DASH_LEN, abs=5)
     assert float(feet[-1]) == pytest.approx(4 * 48 + 12, abs=6)  # 5 dashes span 204 ft
+
+
+def test_colored_blobs_rejected_as_non_paint():
+    image = make_two_dashed_lines()
+    # Green elongated blobs (foliage-like) alongside the white dashes.
+    for y in (100, 220, 340):
+        cv2.rectangle(image, (348, y), (352, y + DASH_LEN), (40, 200, 40), -1)
+    dashes = detect_dashes(image, tophat_px=11, thresh=40)
+    assert len(dashes) == 10  # only the white paint survives
+    assert all(d.centroid[0] < 340 for d in dashes)
+
+
+def test_chain_score_prefers_regular_spacing():
+    dashes = detect_dashes(make_two_dashed_lines(), tophat_px=11, thresh=40)
+    regular = chain_dashes(dashes)[0]
+    # An irregular chain: same dashes but with one dropped, breaking the rhythm.
+    irregular = [regular[0], regular[1], regular[3], regular[4]]
+    assert chain_score(regular) > chain_score(irregular)
+
+
+def test_merge_joins_same_line_but_not_adjacent_line():
+    dashes = detect_dashes(make_two_dashed_lines(), tophat_px=11, thresh=40)
+    left, right = chain_dashes(dashes)
+    # Fragments of ONE physical line merge back into it...
+    frag_a, frag_b = left[:3], left[3:]
+    merged = merge_by_curve([frag_a, frag_b])
+    assert len(merged) == 1 and len(merged[0]) == 5
+    # ...but two different (parallel, 160px apart) lines never merge.
+    assert len(merge_by_curve([left, right])) == 2
