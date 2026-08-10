@@ -525,11 +525,21 @@ def main() -> None:
         action="store_true",
         help="Keep chains regardless of parallelism to the best-scoring anchor",
     )
+    parser.add_argument(
+        "--scene-mask",
+        type=Path,
+        help="Road-surface mask PNG from scene_mask.py "
+        "(default: configs/scene_masks/<prefix>.png when it exists)",
+    )
     args = parser.parse_args()
 
     image = cv2.imread(str(args.image))
     if image is None:
         raise SystemExit(f"cannot read {args.image}")
+    mask_path = args.scene_mask or Path("configs/scene_masks") / f"{args.prefix}.png"
+    scene_mask = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE) if mask_path.exists() else None
+    if scene_mask is not None and scene_mask.shape != image.shape[:2]:
+        raise SystemExit(f"scene mask {mask_path} shape {scene_mask.shape} != image")
     if args.far_boost:
         dashes = detect_dashes_multiscale(
             image, y_split=args.y_split, tophat_px=args.tophat, thresh=args.thresh
@@ -546,6 +556,18 @@ def main() -> None:
             dtype=np.float32,
         )
         dashes = [d for d in dashes if cv2.pointPolygonTest(polygon, d.centroid, False) >= 0]
+    if scene_mask is not None:
+        before = len(dashes)
+        dashes = [
+            d
+            for d in dashes
+            if scene_mask[
+                min(int(d.centroid[1]), scene_mask.shape[0] - 1),
+                min(int(d.centroid[0]), scene_mask.shape[1] - 1),
+            ]
+            > 0
+        ]
+        print(f"scene mask {mask_path.name}: {before} -> {len(dashes)} dashes on pavement")
     chains = chain_dashes(dashes, min_chain=args.min_chain, merge=True)
     if not args.no_parallel_filter:
         chains, rejected = filter_parallel_to_anchor(chains)

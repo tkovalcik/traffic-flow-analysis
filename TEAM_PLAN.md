@@ -76,7 +76,8 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 | 3.9 | *Nice-to-have:* corridor status strip on dashboard | | open | only if ahead |
 | 3.11 | *Nice-to-have:* enrich clip metadata with Caltrans RWIS road-weather feed (nearest station per camera) | | open | weather on camera pages is burned into video, not structured; RWIS is the structured source |
 | 3.12 | Speed-from-lane-markings design doc | TK | done | docs/speed-estimation-design.md; build is post-Aug-12 stretch |
-| 3.14 | Lane-map staged visualization prototype (Phase A WIP): dash detect → color-grouped lane lines → curve fits → 12-ft ticks | TK | WIP | src/perception/speed/lane_map.py; 2 lane lines mapped cleanly on tva43; grouping needs side-aware merging + flow-direction filtering; WB side pending |
+| 3.14 | Lane-map staged visualization (Phase A): dash detect → color-grouped lane lines → curve fits → 12-ft ticks | TK | done | tv516: all 4 EB lane lines ruled to ~288 ft, cross-line scale agreement 0.28-0.31 ft/px; remaining: WB side, homography fit (Phase A completion) |
+| 3.15 | Camera onboarding: scene segmentation (SegFormer/ADE20K) → road-surface mask gating lane detection | TK | done | configs/scene_masks/<cam>.png; tv516 dash noise 359→47, exactly the 4 real lane lines survive |
 | 3.13 | *Nice-to-have:* night detection profile (NO training): conf 0.15-0.2, imgsz 1280, yolo11s/m, CLAHE/gamma preprocess; A/B on the 2 AM clips | | open | ~2-3h experiment with existing --stats/render tooling; fine-tuning = out of scope (disclosed in AI_USAGE) |
 | 3.10 | *Nice-to-have:* TensorRT/ONNX benchmark table on T4 | | open | time-boxed; only if graded items done |
 
