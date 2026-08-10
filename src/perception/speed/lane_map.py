@@ -72,6 +72,7 @@ def detect_dashes(
     max_len cut, noise by the elongation/size cuts.
     """
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (tophat_px, tophat_px))
     tophat = cv2.morphologyEx(gray, cv2.MORPH_TOPHAT, kernel)
     _, mask = cv2.threshold(tophat, thresh, 255, cv2.THRESH_BINARY)
@@ -86,6 +87,14 @@ def detect_dashes(
         if not (min_len <= length <= max_len and width <= max_width):
             continue
         if width > 0 and length / width < 1.6:
+            continue
+        # Lane paint is WHITE: bright and unsaturated. Kills foliage/horizon
+        # clutter that passes the shape tests.
+        blob = np.zeros(gray.shape, dtype=np.uint8)
+        cv2.drawContours(blob, [contour], -1, 255, -1)
+        mean_s = float(cv2.mean(hsv[:, :, 1], mask=blob)[0])
+        mean_v = float(cv2.mean(hsv[:, :, 2], mask=blob)[0])
+        if mean_s > 70 or mean_v < 120:
             continue
         pts = contour.reshape(-1, 2).astype(np.float64)
         centered = pts - pts.mean(axis=0)
@@ -103,6 +112,69 @@ def detect_dashes(
 def _angle_between(a: tuple[float, float], b: tuple[float, float]) -> float:
     dot = max(-1.0, min(1.0, a[0] * b[0] + a[1] * b[1]))
     return math.degrees(math.acos(dot))
+
+
+def detect_dashes_multiscale(
+    image: np.ndarray,
+    y_split: float = 0.55,
+    upscale: float = 2.0,
+    **kwargs,
+) -> list[DashBlob]:
+    """detect_dashes plus a zoomed pass over the far field (above y_split).
+
+    Distant dashes shrink to a few pixels and fall below the base detector's
+    size cuts; upscaling that region first gives them enough pixels — the same
+    slicing/zooming principle SAHI uses for small-object detection.
+    """
+    base = detect_dashes(image, **kwargs)
+    h = image.shape[0]
+    split_px = int(h * y_split)
+    if split_px < 20:
+        return base
+    far = cv2.resize(image[:split_px], None, fx=upscale, fy=upscale, interpolation=cv2.INTER_CUBIC)
+    far_kwargs = dict(kwargs)
+    far_kwargs["tophat_px"] = max(7, int(kwargs.get("tophat_px", 15) * 0.7))
+    far_kwargs["thresh"] = kwargs.get("thresh", 30.0) * 0.8
+    extra = []
+    for dash in detect_dashes(far, **far_kwargs):
+        scaled = DashBlob(
+            centroid=(dash.centroid[0] / upscale, dash.centroid[1] / upscale),
+            p_start=(dash.p_start[0] / upscale, dash.p_start[1] / upscale),
+            p_end=(dash.p_end[0] / upscale, dash.p_end[1] / upscale),
+            length_px=dash.length_px / upscale,
+            contour=(dash.contour.astype(np.float64) / upscale).astype(np.int32),
+        )
+        duplicate = any(
+            math.hypot(scaled.centroid[0] - b.centroid[0], scaled.centroid[1] - b.centroid[1]) < 5
+            for b in base
+        )
+        if not duplicate:
+            extra.append(scaled)
+    return base + extra
+
+
+def chain_score(chain: list[DashBlob]) -> float:
+    """Confidence of a lane-line chain: many dashes, long paint, smooth spacing.
+
+    Perspective makes true cycle spacings shrink smoothly along a real lane
+    line; erratic spacing ratios mean the chain hopped between features.
+    """
+    if len(chain) < 3:
+        return 0.0
+    spacings = [
+        math.hypot(b.centroid[0] - a.centroid[0], b.centroid[1] - a.centroid[1])
+        for a, b in zip(chain, chain[1:], strict=False)
+    ]
+    ratios = [b / a for a, b in zip(spacings, spacings[1:], strict=False) if a > 0]
+    if ratios:
+        mean_r = sum(ratios) / len(ratios)
+        var = sum((r - mean_r) ** 2 for r in ratios) / len(ratios)
+        cv = math.sqrt(var) / mean_r if mean_r > 0 else 1.0
+    else:
+        cv = 0.0
+    regularity = 1.0 / (1.0 + 3.0 * cv)
+    mean_len = sum(d.length_px for d in chain) / len(chain)
+    return len(chain) * mean_len * regularity
 
 
 def chain_dashes(
@@ -167,64 +239,105 @@ def chain_dashes(
             for dash in chain:
                 used.discard(id(dash))
     if merge:
-        # Experimental: can stitch fragments of one line, but also mis-joins
-        # adjacent lines into zigzags — off by default until made side-aware.
-        chains = _merge_collinear_chains(chains, angle_tol_deg)
+        chains = merge_by_curve(chains)
     # Near-field-first ordering within each chain is construction order; sort
     # chains left-to-right by their near-field anchor for stable colors.
     chains.sort(key=lambda c: c[0].centroid[0])
     return chains
 
 
-def _merge_collinear_chains(
-    chains: list[list[DashBlob]], angle_tol_deg: float
-) -> list[list[DashBlob]]:
-    """Join chain fragments of the same physical lane line end-to-start.
+def _extended_curve_samples(chain: list[DashBlob], degree: int = 2, n: int = 600):
+    """Dense (xs, ys, ts, total) of the chain's curve, extrapolated both ways."""
+    points = []
+    for dash in chain:
+        points.extend([dash.p_start, dash.p_end])
+    pts = np.array(points, dtype=np.float64)
+    chord = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(pts, axis=0), axis=1))])
+    deg = min(degree, len(pts) - 1)
+    fx = np.polynomial.polynomial.polyfit(chord, pts[:, 0], deg)
+    fy = np.polynomial.polynomial.polyfit(chord, pts[:, 1], deg)
+    total = float(chord[-1])
+    ts = np.linspace(-0.8 * total, 2.4 * total, n)
+    xs = np.polynomial.polynomial.polyval(ts, fx)
+    ys = np.polynomial.polynomial.polyval(ts, fy)
+    return xs, ys, ts, total
 
-    Perspective stretches near-field gaps beyond the per-dash search budget, so
-    one painted line often arrives as 2-3 chains; if chain B starts where chain
-    A ends (aligned direction, gap under ~3 local cycles), they are one line.
+
+def merge_by_curve(chains: list[list[DashBlob]], tol_factor: float = 0.5) -> list[list[DashBlob]]:
+    """Join fragments that lie ON each other's extrapolated curve.
+
+    Adjacent lane lines run parallel a full lane width apart, so requiring the
+    candidate's dashes to sit within a fraction of a dash length of the
+    extended curve merges same-line fragments while rejecting the cross-line
+    zigzags that naive end-to-end merging produced.
     """
-    merged = True
-    while merged:
-        merged = False
+    changed = True
+    while changed:
+        changed = False
         for i, a in enumerate(chains):
-            tail = a[-1]
-            # Local cycle estimate at A's far end.
-            if len(a) >= 2:
-                prev = a[-2]
-                local_cycle = math.hypot(
-                    tail.centroid[0] - prev.centroid[0], tail.centroid[1] - prev.centroid[1]
-                )
-            else:
-                local_cycle = 6.0 * tail.length_px
+            if len(a) < 3:
+                continue
+            xs, ys, ts, total = _extended_curve_samples(a)
             for j, b in enumerate(chains):
                 if i == j:
                     continue
-                head = b[0]
-                vx = head.centroid[0] - tail.centroid[0]
-                vy = head.centroid[1] - tail.centroid[1]
-                dist = math.hypot(vx, vy)
-                if dist == 0 or dist > 3.0 * max(local_cycle, 12.0):
+                dists, params = [], []
+                for dash in b:
+                    d2 = (xs - dash.centroid[0]) ** 2 + (ys - dash.centroid[1]) ** 2
+                    k = int(d2.argmin())
+                    dists.append(math.sqrt(float(d2[k])))
+                    params.append(float(ts[k]))
+                tol = max(4.0, tol_factor * (sum(d.length_px for d in b) / len(b)))
+                if max(dists) > tol:
                     continue
-                step = (vx / dist, vy / dist)
-                if (
-                    _angle_between(step, tail.axis) > angle_tol_deg
-                    and _angle_between(step, (-tail.axis[0], -tail.axis[1])) > angle_tol_deg
-                ):
+                after = all(p > 0.9 * total for p in params)
+                before = all(p < 0.1 * total for p in params)
+                if not (after or before):
                     continue
-                if (
-                    _angle_between(step, head.axis) > angle_tol_deg
-                    and _angle_between(step, (-head.axis[0], -head.axis[1])) > angle_tol_deg
-                ):
-                    continue
-                chains[i] = a + b
+                chains[i] = a + b if after else b + a
                 del chains[j]
-                merged = True
+                changed = True
                 break
-            if merged:
+            if changed:
                 break
     return chains
+
+
+def filter_parallel_to_anchor(
+    chains: list[list[DashBlob]], angle_tol_deg: float = 28.0
+) -> tuple[list[list[DashBlob]], list[list[DashBlob]]]:
+    """Keep the best-scoring chain and only chains roughly parallel to it.
+
+    Lane lines of one roadway are parallel curves; anything else (barrier
+    edges, horizon clutter, sign posts) runs its own way. Tangents are
+    compared at matching image depths (same y) — the perspective-safe proxy.
+    Returns (kept, rejected).
+    """
+    if len(chains) <= 1:
+        return chains, []
+    anchor = max(chains, key=chain_score)
+    xs, ys, _, _ = _extended_curve_samples(anchor)
+    kept, rejected = [], []
+    for chain in chains:
+        if chain is anchor:
+            kept.append(chain)
+            continue
+        deviations = []
+        for a, b in zip(chain, chain[1:], strict=False):
+            vx = b.centroid[0] - a.centroid[0]
+            vy = b.centroid[1] - a.centroid[1]
+            norm = math.hypot(vx, vy) or 1.0
+            step = (vx / norm, vy / norm)
+            mid_y = (a.centroid[1] + b.centroid[1]) / 2
+            k = int(np.abs(ys - mid_y).argmin())
+            k0, k1 = max(0, k - 1), min(len(xs) - 1, k + 1)
+            tnorm = math.hypot(xs[k1] - xs[k0], ys[k1] - ys[k0]) or 1.0
+            tangent = ((xs[k1] - xs[k0]) / tnorm, (ys[k1] - ys[k0]) / tnorm)
+            angle = _angle_between(step, tangent)
+            deviations.append(min(angle, 180.0 - angle))
+        mean_dev = sum(deviations) / len(deviations)
+        (kept if mean_dev <= angle_tol_deg else rejected).append(chain)
+    return kept, rejected
 
 
 @dataclass
@@ -396,17 +509,33 @@ def main() -> None:
     parser.add_argument("--gap-ft", type=float, default=36.0)
     parser.add_argument("--tophat", type=int, default=15)
     parser.add_argument("--thresh", type=float, default=30.0)
-    parser.add_argument("--min-chain", type=int, default=4)
+    parser.add_argument("--min-chain", type=int, default=3)
     parser.add_argument(
         "--roi",
         help="Road region polygon 'x1,y1 x2,y2 ...' (normalized); dashes outside are ignored",
+    )
+    parser.add_argument(
+        "--far-boost",
+        action="store_true",
+        help="Second detection pass over an upscaled far field (small-object recovery)",
+    )
+    parser.add_argument("--y-split", type=float, default=0.55, help="Far-field boundary")
+    parser.add_argument(
+        "--no-parallel-filter",
+        action="store_true",
+        help="Keep chains regardless of parallelism to the best-scoring anchor",
     )
     args = parser.parse_args()
 
     image = cv2.imread(str(args.image))
     if image is None:
         raise SystemExit(f"cannot read {args.image}")
-    dashes = detect_dashes(image, tophat_px=args.tophat, thresh=args.thresh)
+    if args.far_boost:
+        dashes = detect_dashes_multiscale(
+            image, y_split=args.y_split, tophat_px=args.tophat, thresh=args.thresh
+        )
+    else:
+        dashes = detect_dashes(image, tophat_px=args.tophat, thresh=args.thresh)
     if args.roi:
         h, w = image.shape[:2]
         polygon = np.array(
@@ -417,12 +546,18 @@ def main() -> None:
             dtype=np.float32,
         )
         dashes = [d for d in dashes if cv2.pointPolygonTest(polygon, d.centroid, False) >= 0]
-    chains = chain_dashes(dashes, min_chain=args.min_chain)
+    chains = chain_dashes(dashes, min_chain=args.min_chain, merge=True)
+    if not args.no_parallel_filter:
+        chains, rejected = filter_parallel_to_anchor(chains)
+    else:
+        rejected = []
+    chains.sort(key=lambda c: c[0].centroid[0])
     chained_ids = {id(d) for chain in chains for d in chain}
     leftovers = [d for d in dashes if id(d) not in chained_ids]
     curves = [fit_lane_curve(chain) for chain in chains]
 
     stamp = review_stamp()
+    args.out_dir = args.out_dir / stamp  # one folder per review round
     args.out_dir.mkdir(parents=True, exist_ok=True)
     paths = []
     stage3, tables = render_stage3(image, curves, args.dash_ft, args.gap_ft)
@@ -435,7 +570,12 @@ def main() -> None:
         cv2.imwrite(str(path), rendered)
         paths.append(path)
 
-    print(f"{len(dashes)} dashes -> {len(chains)} lane lines ({len(leftovers)} unmatched)")
+    print(
+        f"{len(dashes)} dashes -> {len(chains)} lane lines "
+        f"({len(leftovers)} unmatched, {len(rejected)} chains rejected as non-parallel)"
+    )
+    for i, chain in enumerate(chains):
+        print(f"  lane line {i + 1}: score {chain_score(chain):.0f}")
     print("\n".join(tables))
     for path in paths:
         print(path)
