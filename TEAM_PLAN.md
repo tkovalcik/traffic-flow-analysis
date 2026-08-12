@@ -57,7 +57,7 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 | 2.5 | Replay producer: recorded JSONL → Kafka with original timestamps | CM | done | src/replay/producer.py, tested; --speed and --late-fraction |
 | 2.6 | **One-command reviewer demo** (compose up + replay + processor + expected output) | | open | THE graded artifact |
 | 2.7 | Verify reviewer path from a fresh clone in a temp dir | | open | |
-| 2.8 | pytest: crossing logic, window semantics (incl. late events), schema validation | | open | |
+| 2.8 | pytest: crossing logic, window semantics (incl. late events), schema validation | CM | WIP | window semantics spec in tests/test_windows.py; red until 2.1 |
 | 2.9 | Eval labeling: split ~100 frames (50/50 TK/CM) | | open | |
 | 2.10 | Deploy perception to GCP VM, scheduled 3:00-7:30 PM captures | | open | |
 
