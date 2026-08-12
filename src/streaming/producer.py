@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 from confluent_kafka.serialization import MessageField, SerializationContext
 
-from src.streaming.contracts import VehicleEvent, load_avro_schema_str
+from src.streaming.contracts import TrafficAlert, VehicleEvent, load_avro_schema_str
 
 DEFAULT_TOPIC = "vehicle.events"
 DEFAULT_BOOTSTRAP = "localhost:9092"
@@ -65,15 +65,17 @@ class DeliveryStats:
     last_error: str = ""
 
 
-def build_avro_serializer(env: Mapping[str, str] | None = None) -> Callable:
-    """AvroSerializer for vehicle_event; imported lazily so tests need no registry."""
+def build_avro_serializer(
+    env: Mapping[str, str] | None = None, schema_name: str = "vehicle_event"
+) -> Callable:
+    """AvroSerializer for one contract; imported lazily so tests need no registry."""
     from confluent_kafka.schema_registry import SchemaRegistryClient
     from confluent_kafka.schema_registry.avro import AvroSerializer
 
     client = SchemaRegistryClient(schema_registry_config(env))
     return AvroSerializer(
         client,
-        load_avro_schema_str("vehicle_event"),
+        load_avro_schema_str(schema_name),
         lambda event, _ctx: event.to_avro_dict(),
     )
 
@@ -85,7 +87,7 @@ def _default_producer_factory(config: dict):
 
 
 class EventProducer:
-    """Publish VehicleEvents to `vehicle.events`, keyed by camera_id.
+    """Publish a camera-keyed contract to its topic; alerts pass their own serializer.
 
     producer_factory and serializer exist for tests, mirroring FrameSource's
     capture_factory: the publish path runs without a broker or a registry.
@@ -112,8 +114,8 @@ class EventProducer:
             self.stats.failed += 1
             self.stats.last_error = str(err)
 
-    def publish(self, event: VehicleEvent) -> None:
-        """Serialize and enqueue one event. Delivery is confirmed on flush()."""
+    def publish(self, event: VehicleEvent | TrafficAlert) -> None:
+        """Serialize and enqueue one record. Delivery is confirmed on flush()."""
         payload = self._serializer(event, SerializationContext(self.topic, MessageField.VALUE))
         self._producer.produce(
             topic=self.topic,
