@@ -40,7 +40,7 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 | 1.2 | YOLO11n + ByteTrack integration, class filter (car/truck/bus/motorcycle) | TK | done | detect_track.py; --stats mode for calibration |
 | 1.3 | Counting-line config + crossing-event logic (per camera, direction) | TK | WIP | crossing logic done+tested; per-camera line calibration pending (use --stats + thumbnails) |
 | 1.4 | Avro schema for `vehicle.events` + Pydantic model + sample event doc | TK | done | the event contract — graded |
-| 1.5 | Kafka producer (key=camera_id, Schema Registry, idempotent) | TK | open | Tom hand-writes (learning) |
+| 1.5 | Kafka producer (key=camera_id, Schema Registry, idempotent) | CM | done | src/streaming/producer.py, tested; env picks local vs Confluent |
 | 1.6 | Local Kafka docker compose (broker + Schema Registry), smoke test | TK | done | verified: broker healthy, SR responds |
 | 1.7 | Recorder: frames + detection JSONL to disk during capture | TK | done | record.py (clips+metadata) + detect_track --out (events JSONL) |
 | 1.8 | **Golden capture session #1** | TK | done | 15-min tva43 midday session captured 2026-08-09; 2436 events committed as `data/sample/replay_tva43_15min.jsonl`; commute-hour session w/ both cams still worth one run: `uv run python -m src.replay.session --minutes 15 --upload` |
