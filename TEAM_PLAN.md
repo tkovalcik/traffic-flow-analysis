@@ -50,14 +50,14 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 2.1 | Consumer loop + event-time 15-min tumbling windows (+1-min demo windows) | TK | open | Tom hand-writes core (learning) |
-| 2.2 | EWMA baseline + congestion alerts → `traffic.alerts` | TK | WIP | rules+contract done+tested (src/streaming/{baseline,alerts}.py); wiring into consumer awaits 2.1 |
-| 2.3 | Camera-health staleness alert (no events N min) | TK | WIP | rule done+tested; wiring awaits 2.1 |
+| 2.1 | Consumer loop + event-time 15-min tumbling windows (+1-min demo windows) | CM | done | src/streaming/{windows,consumer}.py, tested; 2401 events counted, reruns byte-identical |
+| 2.2 | EWMA baseline + congestion alerts → `traffic.alerts` | TK/CM | done | rules+contract (TK), consumer wiring + alert producer (CM); verified on the topic |
+| 2.3 | Camera-health staleness alert (no events N min) | TK/CM | done | rule (TK) + wiring (CM); runs on event time, needs a 2nd camera for live evidence |
 | 2.4 | Volume table CSV + alerts JSONL writers | TK | done | src/streaming/outputs.py, tested |
 | 2.5 | Replay producer: recorded JSONL → Kafka with original timestamps | CM | done | src/replay/producer.py, tested; --speed and --late-fraction |
 | 2.6 | **One-command reviewer demo** (compose up + replay + processor + expected output) | | open | THE graded artifact |
 | 2.7 | Verify reviewer path from a fresh clone in a temp dir | | open | |
-| 2.8 | pytest: crossing logic, window semantics (incl. late events), schema validation | | open | |
+| 2.8 | pytest: crossing logic, window semantics (incl. late events), schema validation | CM | WIP | window + consumer tests green; crossing/schema coverage still to audit |
 | 2.9 | Eval labeling: split ~100 frames (50/50 TK/CM) | | open | |
 | 2.10 | Deploy perception to GCP VM, scheduled 3:00-7:30 PM captures | | open | |
 
