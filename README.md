@@ -35,8 +35,30 @@ Two ways to run it:
 
 - **Replay path (reviewer demo):** one command starts local Kafka in Docker and
   replays recorded detection events through the full pipeline — deterministic,
-  no cloud, no GPU, no camera access needed. *(Run instructions land here as soon
-  as the pipeline is merged — see TEAM_PLAN.md for status.)*
+  no cloud, no GPU, no camera access needed:
+
+  ```
+  cp .env.example .env      # local defaults work as-is for this demo
+  ./scripts/demo.sh
+  ```
+
+  It brings up the broker, recreates both topics with 3 partitions, replays the
+  recorded 15-minute capture at 60x, and processes it into 60-second event-time
+  windows, writing `outputs/volume_demo_60s.csv` and `outputs/alerts.jsonl`.
+  Expect 2401 events on camera `tva43` across 32 windows. Counts are
+  reproducible across runs and pacings — the printed checksum is over the sorted
+  table, since two cameras close windows on independent watermarks and their
+  rows interleave by arrival order. Useful flags: `--speed 0` (replay as fast as
+  possible), `--no-fault`, `--window-seconds N`.
+
+  The demo also injects a second, clearly synthetic camera (`tva43_mirror`, a
+  copy of the capture under a different id) that goes silent five minutes in, so
+  the `camera_stale` rule has something to fire on and alerts actually flow
+  through `traffic.alerts`. A single-camera recording cannot exercise that rule:
+  a lone camera's stream time is its own last event, so its silence gap is
+  always zero. Pass `--no-fault` for a run over the recorded data alone, which
+  raises no alerts — this corridor's volume never moves enough to trip the
+  spike/drop thresholds.
 - **Live path:** the perception container runs on a GPU/CPU VM against live camera
   streams and produces to Confluent Cloud.
 
