@@ -43,7 +43,7 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 | 1.5 | Kafka producer (key=camera_id, Schema Registry, idempotent) | CM | done | src/streaming/producer.py, tested; env picks local vs Confluent |
 | 1.6 | Local Kafka docker compose (broker + Schema Registry), smoke test | TK | done | verified: broker healthy, SR responds |
 | 1.7 | Recorder: frames + detection JSONL to disk during capture | TK | done | record.py (clips+metadata) + detect_track --out (events JSONL) |
-| 1.8 | **Golden capture session #1** | TK | done | 15-min tva43 midday session captured 2026-08-09; 2436 events committed as `data/sample/replay_tva43_15min.jsonl`; commute-hour session w/ both cams still worth one run: `uv run python -m src.replay.session --minutes 15 --upload` |
+| 1.8 | **Golden capture session #1** | TK | done | 15-min tva43 midday session captured 2026-08-09; 2401 events committed as `data/sample/replay_tva43_15min.jsonl` (count corrected 2026-08-13 — dataset was regenerated after the original 2436 note); commute-hour session w/ both cams still worth one run: `uv run python -m src.replay.session --minutes 15 --upload` |
 | 1.9 | Clip uploader: capture sessions push video clips to the GCS bucket (dataset building) | TK | done | record.py --upload; first clips archived 2026-08-09 |
 
 ## Phase 2 — The graded path end-to-end (Mon Aug 11)
@@ -69,7 +69,7 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 | 3.2 | Dashboard: 15-min counts table + alert feed + camera health (FastAPI) | TK | done | minimal version reads output files (`uvicorn src.dashboard.app:app`); corridor strip stays 3.9 |
 | 3.3 | Latency instrumentation: capture→publish→alert, p50/p95 report script | | open | eval evidence + resume |
 | 3.4 | Eval metrics script: count MAE, precision/recall vs labels | | open | |
-| 3.5 | Demo videos rendered offline: annotated vs detections-only side-by-side | | open | presentation punchline |
+| 3.5 | Demo videos rendered offline: annotated vs detections-only side-by-side | TK | done | render.py `--stage raw=8,overlay=14,dark=10` + `--trail-seconds` (vanishing track trails) + red crossing pops; staged mp4s for tva43+tv516 in outputs/presentation/ (local) |
 | 3.6 | Report draft (structure per rubric) | | open | |
 | 3.7 | Pick + label the +3 bonus extension with repro steps | | open | candidate: benchmark table or replay determinism demo |
 | 3.8 | Contribution documentation (this file → report section) | | open | |
@@ -86,8 +86,8 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 4.1 | Presentation slides + demo dry-run (replay-driven, sped-up event-time demo) | | open | check for instructor's presentation handout — unpublished as of Aug 9 |
-| 4.2 | Both partners can explain every component (walkthrough session) | | open | rubric requirement |
+| 4.1 | Presentation slides + demo dry-run (replay-driven, sped-up event-time demo) | TK | WIP | handout is out: slot 6:24–6:32 PM, 7 min + 1 min Q&A, both speak; slides outline + assets in internal-docs/presentation/ (local); demo verified end-to-end on TK's machine Aug 13 (both checksums match CM's) |
+| 4.2 | Both partners can explain every component (walkthrough session) | TK/CM | WIP | CM's defense notes + TK's speaker prep pack in internal-docs/presentation/ (local); rehearsal pending |
 | 4.3 | **Present — Thu Aug 13, 5:30 PM** | | open | |
 | 4.4 | report.pdf final, ZIP per required structure, submit on Canvas | | open | both upload if not linked as group |
 | 4.5 | Cloud cleanup: stop VM, document teardown | | open | |
