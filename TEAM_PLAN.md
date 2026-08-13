@@ -52,9 +52,9 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 |---|------|-------|--------|-------|
 | 2.1 | Consumer loop + event-time 15-min tumbling windows (+1-min demo windows) | CM | done | src/streaming/{windows,consumer}.py, tested; 2401 events counted, reruns byte-identical |
 | 2.2 | EWMA baseline + congestion alerts → `traffic.alerts` | TK/CM | done | rules+contract (TK), consumer wiring + alert producer (CM); verified on the topic |
-| 2.3 | Camera-health staleness alert (no events N min) | TK/CM | done | rule (TK) + wiring (CM); runs on event time, needs a 2nd camera for live evidence |
+| 2.3 | Camera-health staleness alert (no events N min) | TK/CM | done | rule (TK) + wiring (CM); runs on event time; fires on the replay's mirrored camera |
 | 2.4 | Volume table CSV + alerts JSONL writers | TK | done | src/streaming/outputs.py, tested |
-| 2.5 | Replay producer: recorded JSONL → Kafka with original timestamps | CM | done | src/replay/producer.py, tested; --speed and --late-fraction |
+| 2.5 | Replay producer: recorded JSONL → Kafka with original timestamps | CM | done | src/replay/producer.py, tested; --speed, --late-fraction, --mirror-camera/--drop-after |
 | 2.6 | **One-command reviewer demo** (compose up + replay + processor + expected output) | | open | THE graded artifact |
 | 2.7 | Verify reviewer path from a fresh clone in a temp dir | | open | |
 | 2.8 | pytest: crossing logic, window semantics (incl. late events), schema validation | CM | WIP | window + consumer tests green; crossing/schema coverage still to audit |

@@ -5,11 +5,14 @@ and republishes them through the shared producer, preserving each event's
 ts_event and rewriting ts_publish to the moment it reaches the broker. --speed
 compresses the wall-clock gaps so a 15-minute capture replays in seconds, and
 --late-fraction holds a share of events back past their window boundary so the
-consumer's late-event path actually runs.
+consumer's late-event path actually runs. --mirror-camera adds a second,
+clearly synthetic camera that --drop-after can silence mid-stream, which is the
+only way a single-camera recording can exercise the camera_stale rule.
 
 Usage:
     uv run python -m src.replay.producer --speed 60
     uv run python -m src.replay.producer --late-fraction 0.05 --speed 120
+    uv run python -m src.replay.producer --mirror-camera tva43_mirror --drop-after
 """
 
 from __future__ import annotations
@@ -21,6 +24,7 @@ import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from uuid import uuid4
 
 from dotenv import load_dotenv
 
@@ -31,6 +35,7 @@ DEFAULT_FILE = Path("data/sample/replay_tva43_15min.jsonl")
 DEFAULT_SPEED = 60.0
 DEFAULT_LATE_SECONDS = 120.0
 DEFAULT_SEED = 0
+DEFAULT_DROP_AFTER = 300.0
 
 
 def load_events(path: Path, limit: int | None = None) -> list[VehicleEvent]:
@@ -71,6 +76,29 @@ def emission_schedule(
     return schedule
 
 
+def mirror_events(
+    events: list[VehicleEvent],
+    camera_id: str,
+    drop_after_seconds: float | None = None,
+) -> list[VehicleEvent]:
+    """Copy the capture onto a second camera, optionally silenced part way in.
+
+    A lone camera's stream_time is its own last event, so its silence gap is
+    always zero and camera_stale can never fire. A mirror that stops early
+    leaves the real camera advancing the clock, which is what the rule needs.
+    """
+    if not events:
+        return []
+    start = events[0].ts_event
+    mirrored = []
+    for event in events:
+        if drop_after_seconds is not None:
+            if (event.ts_event - start).total_seconds() > drop_after_seconds:
+                continue
+        mirrored.append(event.model_copy(update={"camera_id": camera_id, "event_id": str(uuid4())}))
+    return mirrored
+
+
 def replay(
     schedule: list[tuple[float, VehicleEvent]],
     producer: EventProducer,
@@ -105,11 +133,30 @@ def main(argv: list[str] | None = None) -> None:
     )
     parser.add_argument("--late-seconds", type=float, default=DEFAULT_LATE_SECONDS)
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Lateness draw seed")
+    parser.add_argument(
+        "--mirror-camera",
+        help="Replay the capture a second time under this camera id (synthetic)",
+    )
+    parser.add_argument(
+        "--drop-after",
+        type=float,
+        nargs="?",
+        const=DEFAULT_DROP_AFTER,
+        help="Silence the mirrored camera this many seconds in, so camera_stale fires",
+    )
     args = parser.parse_args(argv)
+
+    if args.drop_after is not None and not args.mirror_camera:
+        raise SystemExit("--drop-after needs --mirror-camera; the real capture is never truncated")
 
     events = load_events(args.file, args.limit)
     if not events:
         raise SystemExit(f"no events in {args.file}")
+    if args.mirror_camera:
+        mirrored = mirror_events(events, args.mirror_camera, args.drop_after)
+        silence = f", silent after {args.drop_after:.0f}s" if args.drop_after is not None else ""
+        print(f"mirroring {len(mirrored)} events onto {args.mirror_camera}{silence}")
+        events = events + mirrored
     schedule = emission_schedule(events, args.late_fraction, args.late_seconds, args.seed)
     span_s = schedule[-1][0]
     pace = f"at {args.speed:.0f}x (~{span_s / args.speed:.0f}s)" if args.speed > 0 else "unpaced"
