@@ -92,7 +92,26 @@ course-required documentation.
 
 ## Setup
 
+For the reviewer demo you only need the streaming path — three packages, no
+perception stack:
+
+```bash
+uv venv --python 3.11
+uv pip install "confluent-kafka[avro,schemaregistry]" pydantic python-dotenv
+cp .env.example .env    # local Kafka defaults work as-is
+```
+
+On an Intel Mac add `"cryptography==46.0.3"` to that install: `confluent-kafka`
+pulls `cryptography` in through `authlib`, and the pinned version builds from
+source there rather than installing a wheel.
+
+The full environment, needed only for perception (capture, YOLO, tracking):
+
 ```bash
 uv sync                 # or: pip install -r requirements.txt  (Python 3.11)
 cp .env.example .env    # fill in your values
 ```
+
+`uv sync` resolves `torch`, `opencv-python` and `ultralytics`, which have no
+x86_64 macOS wheels — it cannot complete on an Intel Mac. The reviewer demo
+above does not need any of them.

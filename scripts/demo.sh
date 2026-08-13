@@ -59,10 +59,13 @@ kt() { docker exec "$KAFKA" kafka-topics --bootstrap-server localhost:9092 "$@";
 if ! "${PY[@]}" -c "import confluent_kafka, pydantic, dotenv" >/dev/null 2>&1; then
   cat >&2 <<EOF
 Cannot run: ${PY[*]} is missing the streaming dependencies.
-The demo needs only confluent-kafka[avro], pydantic and python-dotenv:
+This demo needs three packages, not the perception stack:
 
-  python3 -m venv .venv
-  .venv/bin/pip install 'confluent-kafka[avro]' pydantic python-dotenv
+  uv venv --python 3.11
+  uv pip install "confluent-kafka[avro,schemaregistry]" pydantic python-dotenv
+
+On an Intel Mac add "cryptography==46.0.3" to that install. Note the project
+pins Python 3.11; a system python3 of 3.13 has no cryptography wheel here.
 
 Then re-run ./scripts/demo.sh, or point it at an interpreter with
 PYTHON=/path/to/python ./scripts/demo.sh
