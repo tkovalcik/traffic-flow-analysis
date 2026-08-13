@@ -3,7 +3,7 @@
 import json
 from datetime import UTC, datetime, timedelta
 
-from src.replay.producer import emission_schedule, load_events, replay
+from src.replay.producer import emission_schedule, load_events, mirror_events, replay
 from src.streaming.contracts import TravelDirection, VehicleClass, VehicleEvent
 from src.streaming.producer import DeliveryStats
 
@@ -90,6 +90,50 @@ def test_lateness_draw_is_deterministic_for_a_seed():
 
 def test_empty_input_yields_empty_schedule():
     assert emission_schedule([]) == []
+
+
+def test_mirror_copies_every_event_onto_the_new_camera():
+    mirrored = mirror_events(make_events([0, 30, 60]), "tva43_mirror")
+    assert [e.camera_id for e in mirrored] == ["tva43_mirror"] * 3
+
+
+def test_mirror_keeps_event_time_so_copies_share_windows():
+    events = make_events([0, 30, 60])
+    mirrored = mirror_events(events, "tva43_mirror")
+    assert [e.ts_event for e in mirrored] == [e.ts_event for e in events]
+
+
+def test_mirror_gives_each_copy_a_fresh_event_id():
+    events = make_events([0, 30])
+    mirrored = mirror_events(events, "tva43_mirror")
+    ids = {e.event_id for e in events} | {e.event_id for e in mirrored}
+    assert len(ids) == 4
+
+
+def test_drop_after_silences_the_mirror_mid_stream():
+    mirrored = mirror_events(make_events([0, 30, 60, 90]), "tva43_mirror", drop_after_seconds=60)
+    assert [(e.ts_event - START).total_seconds() for e in mirrored] == [0.0, 30.0, 60.0]
+
+
+def test_drop_after_leaves_the_source_capture_untouched():
+    events = make_events([0, 30, 60, 90])
+    mirror_events(events, "tva43_mirror", drop_after_seconds=30)
+    assert len(events) == 4 and all(e.camera_id == "tva43" for e in events)
+
+
+def test_mirror_of_nothing_is_nothing():
+    assert mirror_events([], "tva43_mirror") == []
+
+
+def test_mirrored_stream_lets_the_dead_camera_fall_behind():
+    # The point of the mirror: the surviving camera keeps advancing stream time,
+    # so the silenced one accumulates a gap a lone camera could never show.
+    events = make_events([0, 120, 240, 360])
+    mirrored = mirror_events(events, "tva43_mirror", drop_after_seconds=60)
+    combined = events + mirrored
+    newest = max(e.ts_event for e in combined)
+    last_mirror = max(e.ts_event for e in combined if e.camera_id == "tva43_mirror")
+    assert (newest - last_mirror).total_seconds() == 360.0
 
 
 def test_replay_publishes_every_event_and_flushes():
