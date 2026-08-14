@@ -28,7 +28,7 @@ Stream processor  (event-time 15-min tumbling windows; counts by
 Kafka topic: traffic.alerts  +  volume tables (CSV)  +  alerts (JSONL)
         │
         ▼
-Dashboard (FastAPI)          Evaluation (labeled frames → MAE, precision/recall)
+Dashboard (FastAPI)          Evaluation (tests + deterministic replay evidence)
 ```
 
 Two ways to run it:
@@ -83,7 +83,7 @@ docker/           local Kafka compose
 scripts/          capture-session & cloud VM helpers
 data/sample/      small committed sample/replay data
 outputs/          generated volume tables & alerts (gitignored except samples)
-evaluation/       labeled frames, metrics scripts, latency reports
+evaluation/       validation evidence + the reproducibility extension (see its README)
 tests/            pytest suite (crossing logic, windowing, contracts)
 ```
 
