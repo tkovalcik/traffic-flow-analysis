@@ -79,7 +79,7 @@ src/streaming/    event contracts (Avro/Pydantic), window processor, alerts
 src/replay/       session recorder + deterministic replay producer
 src/dashboard/    FastAPI dashboard
 src/triage/       camera-inventory scanner (which public cams actually work)
-docker/           local Kafka compose, perception Dockerfile
+docker/           local Kafka compose
 scripts/          capture-session & cloud VM helpers
 data/sample/      small committed sample/replay data
 outputs/          generated volume tables & alerts (gitignored except samples)
