@@ -3,7 +3,10 @@
 The window core the consumer loop delegates to: bucket events onto a clock-aligned
 grid, close a window once a per-camera watermark passes its end, and drop events
 whose window already closed. Windows close on event time only — never wall clock —
-so replayed output is identical at --speed 0 in CI and --speed 60 in the demo.
+so replayed counts are identical at --speed 0 in CI and --speed 60 in the demo.
+Row order is not stable once two cameras close windows on independent watermarks
+and their rows interleave by arrival, so reproducibility is checked over the
+sorted table rather than the file bytes.
 
 Watermarks are per camera so one silent camera cannot stall another's windows;
 stream_time is the cross-camera clock the staleness rule compares against.
