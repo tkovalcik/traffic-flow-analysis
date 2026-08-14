@@ -1,0 +1,43 @@
+
+==> 1/5  Starting local Kafka
+broker healthy, schema registry responding
+
+==> 2/5  Recreating topics with 3 partitions
+WARNING: Due to limitations in metric names, topics with a period ('.') or underscore ('_') could collide. To avoid issues it is best to use either, but not both.
+Created topic vehicle.events.
+WARNING: Due to limitations in metric names, topics with a period ('.') or underscore ('_') could collide. To avoid issues it is best to use either, but not both.
+Created topic traffic.alerts.
+traffic.alerts
+vehicle.events
+
+==> 3/5  Replaying the recorded capture
+
+==> 4/5  Processing the stream into 60s event-time windows
+mirroring 794 events onto tva43_mirror, silent after 300s
+replaying 3195 events spanning 15.0 min at 60x (~15s)
+delivered 3195, failed 0, pending 0 in 19.6s
+consuming vehicle.events into 60s windows (group tfa-stream-processor)
+consumed 3195, windows 44, alerts 1, late dropped 0 (idle_timeout)
+published 1 alerts to traffic.alerts
+wrote outputs/volume_demo_60s.csv and outputs/alerts.jsonl
+
+==> 5/5  Result
+volume table : outputs/volume_demo_60s.csv (62 rows)
+alert log    : outputs/alerts.jsonl (1 alerts)
+checksum     : 1bd6cba1c010d82951c9c340428dab30dbcc40ff (order-independent)
+
+counted per camera:
+  tva43          2401
+  tva43_mirror   794
+
+alerts raised (also published to traffic.alerts):
+  [camera_stale] tva43_mirror: no vehicle events for 359s
+
+expected for this capture:
+  tva43          2401   (real, 32 windows)
+  tva43_mirror    794   (synthetic, silenced 300s in, 12 windows)
+  1 alert: camera_stale on tva43_mirror
+Partition spread (key=camera_id keeps a camera's events ordered on one partition):
+  vehicle.events:0:2401
+  vehicle.events:1:0
+  vehicle.events:2:794

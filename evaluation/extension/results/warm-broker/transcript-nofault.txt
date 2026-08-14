@@ -1,0 +1,34 @@
+
+==> 1/5  Starting local Kafka
+broker healthy, schema registry responding
+
+==> 2/5  Recreating topics with 3 partitions
+WARNING: Due to limitations in metric names, topics with a period ('.') or underscore ('_') could collide. To avoid issues it is best to use either, but not both.
+Created topic vehicle.events.
+WARNING: Due to limitations in metric names, topics with a period ('.') or underscore ('_') could collide. To avoid issues it is best to use either, but not both.
+Created topic traffic.alerts.
+traffic.alerts
+vehicle.events
+
+==> 3/5  Replaying the recorded capture
+
+==> 4/5  Processing the stream into 60s event-time windows
+replaying 2401 events spanning 15.0 min unpaced
+delivered 2401, failed 0, pending 0 in 0.3s
+consuming vehicle.events into 60s windows (group tfa-stream-processor)
+consumed 2401, windows 32, alerts 0, late dropped 0 (idle_timeout)
+published 0 alerts to traffic.alerts
+wrote outputs/volume_demo_60s.csv and outputs/alerts.jsonl
+
+==> 5/5  Result
+volume table : outputs/volume_demo_60s.csv (46 rows)
+alert log    : outputs/alerts.jsonl (0 alerts)
+checksum     : c08531859140dc98ae60a660e96b93bc241fe31d (order-independent)
+
+counted per camera:
+  tva43          2401
+
+Partition spread (key=camera_id keeps a camera's events ordered on one partition):
+  vehicle.events:0:2401
+  vehicle.events:1:0
+  vehicle.events:2:0

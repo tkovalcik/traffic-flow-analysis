@@ -1,0 +1,1 @@
+{"alert_id":"7c8177c7-03a9-4e1e-947b-e59fdd96bf3e","camera_id":"tva43_mirror","alert_type":"camera_stale","ts_alert":"2026-08-09T19:01:30.382000Z","window_start":"2026-08-09T18:47:30.282000Z","window_end":"2026-08-09T19:01:30.382000Z","direction":null,"observed_count":null,"baseline":null,"message":"tva43_mirror: no vehicle events for 840s"}
