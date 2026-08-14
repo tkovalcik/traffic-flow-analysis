@@ -9,7 +9,7 @@ Tom Kovalcik and Christopher Monzon · August 14, 2026
 ## 1. Problem, target user, and useful result
 
 Traffic engineers plan signal timing, ramp metering, and capacity studies from
-**15-minute directional volume counts** - the standard interval in the field.
+15-minute directional volume counts - the standard interval in the field.
 Getting those counts usually means either paying for pneumatic tube counts and
 manual studies, or waiting on loop-detector infrastructure that exists only on
 instrumented segments. Meanwhile, state DOTs already operate hundreds of public
@@ -22,15 +22,15 @@ directional volume for a corridor that has a public camera but no counting
 hardware, and who also needs to know when a camera has gone dark so they do not
 silently plan against missing data.
 
-**Useful, observable result:** the system produces a **15-minute volume table**
-broken down by camera, direction, and vehicle class, plus a **live alert stream**
+**Useful, observable result:** the system produces a 15-minute volume table
+broken down by camera, direction, and vehicle class, plus a live alert stream
 for congestion anomalies and camera health. Both are real artifacts a user
 consumes, not intermediate state:
 
 | Artifact | Form | Consumer |
 |---|---|---|
 | Volume table | CSV, one row per window × camera × direction × class | Analysis, spreadsheets, dashboard |
-| Alerts | JSONL **and** the `traffic.alerts` Kafka topic | Operators, downstream subscribers |
+| Alerts | JSONL and the `traffic.alerts` Kafka topic | Operators, downstream subscribers |
 
 A representative row and alert, both from the committed demo run:
 
@@ -51,15 +51,15 @@ one complete path that another person can run and verify, not breadth.
 
 ### 2.1 Source and limitations
 
-Live public highway CCTV from **Caltrans District 4**, accessed through the
+Live public highway CCTV from Caltrans District 4, accessed through the
 public traffic-camera map. The validation camera for everything in this report
-is **`tva43` - I-580 at Grand/Lakeshore, Oakland**; a second camera, `tv516`
+is `tva43` - I-580 at Grand/Lakeshore, Oakland; a second camera, `tv516`
 (I-80 west of Ashby, Emeryville), was calibrated and used for lane-geometry
 work. Full documentation is in `DATA_SOURCE.md`; the essentials:
 
 - **Access:** public web streams, no API key, no documented rate limit. We
   sample 2–4 cameras at native stream rate - comparable load to a person
-  watching the public page. **Stream URLs are not committed**; they are supplied
+  watching the public page. Stream URLs are not committed; they are supplied
   through `.env` (see `.env.example`).
 - **Rights:** Caltrans' Conditions of Use (accessed 2026-08-09) state website
   content is generally public domain and may be distributed or copied as
@@ -70,11 +70,11 @@ work. Full documentation is in `DATA_SOURCE.md`; the essentials:
   the perception node and discarded; only detection metadata leaves the node.
   Faces and plates are not resolvable at these resolutions.
 - **Measured stream behavior (2026-08-09):** HLS over HTTPS from a Wowza server,
-  10-second segments with a 3-segment live window, giving **~30 s of live-edge
-  latency** (verified against the cameras' burned-in clocks). `tva43` is
+  10-second segments with a 3-segment live window, giving ~30 s of live-edge
+  latency (verified against the cameras' burned-in clocks). `tva43` is
   720×480 H.264 @ 30 fps, ~570 kbps.
-- **Continuity:** a 15-minute continuous capture completed with **0 reconnects,
-  0 read failures**, all 27,000 expected frames, and a worst inter-frame stall
+- **Continuity:** a 15-minute continuous capture completed with 0 reconnects,
+  0 read failures, all 27,000 expected frames, and a worst inter-frame stall
   of 9.7 s absorbed by buffering with no frame loss. 15-minute continuous
   recording - the interval the product is built around - is therefore supported
   rather than assumed.
@@ -84,17 +84,17 @@ work. Full documentation is in `DATA_SOURCE.md`; the essentials:
 
 ### 2.2 The validated event contract
 
-The unit of the system is a **vehicle crossing event**: one vehicle crossed one
+The unit of the system is a vehicle crossing event: one vehicle crossed one
 calibrated counting line in one direction. The canonical contract is an Avro
 schema in `src/streaming/schemas/` registered in Schema Registry, mirrored by a
-Pydantic model used for validation. Topic `vehicle.events`, **key =
-`camera_id`**.
+Pydantic model used for validation. Topic `vehicle.events`, key =
+`camera_id`.
 
 | Field | Type | Role |
 |---|---|---|
 | `event_id` | string (uuid) | unique per crossing |
-| `camera_id` | string | **partition key**, stable per camera |
-| `ts_event` | timestamp-millis | frame time - **the event-time clock all windowing uses** |
+| `camera_id` | string | partition key, stable per camera |
+| `ts_event` | timestamp-millis | frame time - the event-time clock all windowing uses |
 | `ts_publish` | timestamp-millis | producer wall clock, for latency measurement |
 | `track_id` | long | ByteTrack persistent id |
 | `vehicle_class` | enum | car / truck / bus / motorcycle |
@@ -170,7 +170,7 @@ detectable.
 
 **Late events are dropped and tallied, not silently discarded.** A window that
 has closed will not reopen; anything arriving for it increments a visible
-counter. A reviewer can therefore see that the demo drops **0** events as late,
+counter. A reviewer can therefore see that the demo drops 0 events as late,
 rather than trusting that it doesn't.
 
 **A pretrained detector, with no training.** YOLO11n on pretrained COCO weights
@@ -188,7 +188,7 @@ gain to the stated problem.
 | `src/dashboard/` | FastAPI dashboard over the output files |
 | `src/triage/` | camera-inventory scanner (which public cameras actually work) |
 
-Counting lines are calibrated per camera and **motion-gated**: each line carries
+Counting lines are calibrated per camera and motion-gated: each line carries
 a calibrated flow vector, and a track moving against it cannot fire that line.
 This was not cosmetic - ungated per-flow lines overcounted roughly 2× on `tva43`
 because the opposite flow's vehicles crossed the line in the far field.
@@ -210,7 +210,7 @@ cp .env.example .env      # local defaults work as-is
 ```
 
 The script brings up local Kafka, recreates both topics at 3 partitions, replays
-the recorded 15-minute capture at 60×, and processes it. **Expected output**,
+the recorded 15-minute capture at 60×, and processes it. Expected output,
 reproduced verbatim from a real run (`evaluation/results/`):
 
 ```
@@ -262,7 +262,7 @@ perception environment; `torch`, `opencv-python` and `ultralytics` publish no
 x86_64 macOS wheels and cannot be installed on the machine that did this work.
 Labeling ~100 frames was scoped and not finished before the deadline.
 
-**Known limitation, disclosed:** **night scenes fail outright.** On ~2 AM
+**Known limitation, disclosed:** night scenes fail outright. On ~2 AM
 captures the pretrained detector missed the large majority of passing vehicles
 (headlight glare, low contrast). Accuracy is claimed for daylight only. A
 no-training mitigation path is documented as future work; fine-tuning is
@@ -283,10 +283,10 @@ Full disclosure in `AI_USAGE.md`.
 
 | Evidence | Result |
 |---|---|
-| Automated suite (CI, `ubuntu-latest`) | **177 tests pass** |
-| Automated suite (Intel Mac, streaming subset) | **118 tests pass** |
+| Automated suite (CI, `ubuntu-latest`) | 177 tests pass |
+| Automated suite (Intel Mac, streaming subset) | 118 tests pass |
 | Lint + format gate on every PR | `ruff check` → `ruff format --check` → `pytest`; red CI never merges |
-| End-to-end demo | 3195 events published, **0 failed**, 44 windows, 62 rows, **0 late dropped**, 1 alert |
+| End-to-end demo | 3195 events published, 0 failed, 44 windows, 62 rows, 0 late dropped, 1 alert |
 
 The suite concentrates on parts where correctness is not obvious by inspection:
 window assignment and late-event handling, per-camera watermarks, the poll loop
@@ -297,7 +297,7 @@ suppression. Breakdown in `evaluation/test-evidence.md`.
 **Reproducibility was verified by destroying the environment, not by re-running
 in place.** The path has been reproduced from three fresh clones (two local, one
 from GitHub `main`) and against a broker destroyed with `docker compose down -v`
-and rebuilt from nothing. **The first fresh-clone attempt failed** - the
+and rebuilt from nothing. The first fresh-clone attempt failed - the
 documented setup recipe had never been executed on a machine without a prepared
 `.venv`, and it was wrong. That failure is the reason the check exists, and the
 recipe in §4.1 is the corrected one, re-verified from a second clean clone.
@@ -331,15 +331,15 @@ across all of them.
 | no-fault control | `c08531859140dc98ae60a660e96b93bc241fe31d` |
 
 The first two are identical, which is the claim under test: the pipeline windows
-on event time, so **the wall-clock rate at which events reach the broker does not
-change the result**. The third run is the control - it removes the injected
+on event time, so the wall-clock rate at which events reach the broker does not
+change the result. The third run is the control - it removes the injected
 fault and shows the alert is caused by the injected silence and not by the
 recorded data, while `tva43`'s counts stay identical whether the synthetic
 camera is present or not (2401 events, 32 windows, 46 rows, 0 alerts).
 
 ### 4.5 How the alert evidence was produced - and why that way
 
-A single-camera recording **cannot** exercise a staleness rule: a lone camera's
+A single-camera recording cannot exercise a staleness rule: a lone camera's
 stream time is its own last event, so its silence gap is always zero. Two
 options were rejected before the one we used:
 
@@ -351,13 +351,13 @@ options were rejected before the one we used:
 **Chosen:** `--mirror-camera` replays the capture under a second, clearly
 synthetic id (`tva43_mirror`) and `--drop-after` silences it 300 s in. The
 surviving real camera keeps advancing `stream_time`, which is the only way a
-recording can produce a genuine silence gap. **The mirror dies, never the real
-camera** - `--drop-after` is rejected without `--mirror-camera` - so `tva43`
+recording can produce a genuine silence gap. The mirror dies, never the real
+camera - `--drop-after` is rejected without `--mirror-camera` - so `tva43`
 holds the exact 2401-event / 32-window baseline that was verified before the
 fault injection existed, and the injection cannot be accused of perturbing the
 real result.
 
-The cut point was **not** tuned to force a second alert. We expected the
+The cut point was not tuned to force a second alert. We expected the
 mirror's truncated tail might also fire `volume_drop`; at a round 300 s it does
 not (the tail holds ~half a window, ratio ~0.56 against a 0.35 threshold).
 Moving the cut to ~280 s would have fired it. We deliberately did not - choosing
@@ -367,15 +367,15 @@ a cut point to manufacture an alert is the same sin as loosening thresholds.
 
 - **Detection accuracy is unmeasured** (§4.2), and night scenes fail outright.
 - **`volume_spike` and `volume_drop` have never fired on real data.** This
-  corridor's volume does not move enough at any window size. **The demo
-  exercises 1 of 3 alert rules.** Thresholds were not loosened and the fault cut
+  corridor's volume does not move enough at any window size. The demo
+  exercises 1 of 3 alert rules. Thresholds were not loosened and the fault cut
   point was not tuned to change that.
 - **`camera_stale` fires only against an injected synthetic camera**, for the
   structural reason in §4.5. The gap it reports varies with consumption progress
   (359 s / 840 s observed).
 - **Volume-table row order is not byte-stable** once two cameras close windows on
   independent watermarks and their rows interleave by arrival. Counts are exact;
-  reproducibility is claimed over the **sorted** table. The original determinism
+  reproducibility is claimed over the sorted table. The original determinism
   claim was written and tested for one camera and did not survive a second - a
   claim holding only under the conditions it was written for.
 - **The demo runs 60-second windows, not the 900-second windows the architecture
