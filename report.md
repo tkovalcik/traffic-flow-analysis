@@ -1,7 +1,7 @@
 # Traffic Flow Analysis
 ### A reproducible streaming data product for highway vehicle counting
 
-**MSDS 682 - Data Stream Processing · Final Project**
+**MSDS 682 - Data Stream Processing · Final Project**\
 Tom Kovalcik and Christopher Monzon · August 14, 2026
 
 ---
