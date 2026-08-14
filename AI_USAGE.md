@@ -22,9 +22,16 @@ the product, plus disclosed AI-assisted development.
   ungated per-flow lines overcounted roughly 2× on `tva43` because the opposite
   flow's vehicles crossed the line in the far field. Thresholds were fixed at
   calibration time (2026-08-09) and not retuned afterwards.
-- **Verification:** ~100 hand-labeled frames; per-frame count MAE and detection
-  precision/recall; alert sanity checks on a known-busy segment. Artifacts in
-  `evaluation/`.
+- **Verification:** what we verified is that emitted events are schema-valid,
+  correctly keyed and partitioned, and that they window and count
+  deterministically — 177 automated tests in CI plus the end-to-end replay
+  reproduction; artifacts in `evaluation/`. Detection accuracy against ground
+  truth (hand-labeled frames, per-frame count MAE, detection precision/recall)
+  was scoped but **not completed within this project** and is documented as
+  future work; we state that boundary explicitly rather than let it be
+  discovered. See `report.pdf` §4.2 for the same statement and the reason
+  (labeling requires the retained source clips plus a working perception
+  environment).
 - **Known limitations:** low-resolution cameras, occlusion at congested moments,
   class confusion (car vs truck). Counting-line logic mitigates double-counting
   but depends on tracker id stability. **Night scenes fail outright**: on ~2 AM

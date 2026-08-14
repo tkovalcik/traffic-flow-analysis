@@ -115,3 +115,16 @@ cp .env.example .env    # fill in your values
 `uv sync` resolves `torch`, `opencv-python` and `ultralytics`, which have no
 x86_64 macOS wheels — it cannot complete on an Intel Mac. The reviewer demo
 above does not need any of them.
+
+## Cleanup
+
+Everything the demo creates is local:
+
+```bash
+docker compose -f docker/compose.local-kafka.yml down -v   # stop broker + Schema Registry, delete volumes
+rm -rf outputs/volume_demo_60s.csv outputs/alerts.jsonl   # generated demo outputs (optional)
+```
+
+`down -v` removes the Kafka data volumes, so the next run starts from a cold
+broker (expect the one documented coordinator warning again). No cloud
+resources are part of the review path.
