@@ -57,22 +57,22 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 | 2.5 | Replay producer: recorded JSONL → Kafka with original timestamps | CM | done | src/replay/producer.py, tested; --speed, --late-fraction, --mirror-camera/--drop-after |
 | 2.6 | **One-command reviewer demo** (compose up + replay + processor + expected output) | CM | done | scripts/demo.sh; 2401+794 events, 44 windows, 1 camera_stale alert |
 | 2.7 | Verify reviewer path from a fresh clone in a temp dir | CM | done | clone + documented setup + demo.sh reproduces the same checksum; README setup corrected |
-| 2.8 | pytest: crossing logic, window semantics (incl. late events), schema validation | CM | WIP | window + consumer tests green; crossing/schema coverage still to audit |
-| 2.9 | Eval labeling: split ~100 frames (50/50 TK/CM) | | open | |
-| 2.10 | Deploy perception to GCP VM, scheduled 3:00-7:30 PM captures | | open | |
+| 2.8 | pytest: crossing logic, window semantics (incl. late events), schema validation | CM | done | coverage documented in evaluation/test-evidence.md (177 tests) |
+| 2.9 | Eval labeling: split ~100 frames (50/50 TK/CM) | | skip | scoped out before deadline; stated as future work in report §4.2 + AI_USAGE |
+| 2.10 | Deploy perception to GCP VM, scheduled 3:00-7:30 PM captures | | skip | not needed for the graded (local replay) path |
 
 ## Phase 3 — Live layer, evidence, report (Tue Aug 12 — target: everything done)
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 3.1 | Confluent Cloud live path (same code, env config swap) | | open | |
+| 3.1 | Confluent Cloud live path (same code, env config swap) | | skip | credits exhausted; env-swap design documented in report §4.6 |
 | 3.2 | Dashboard: 15-min counts table + alert feed + camera health (FastAPI) | TK | done | minimal version reads output files (`uvicorn src.dashboard.app:app`); corridor strip stays 3.9 |
-| 3.3 | Latency instrumentation: capture→publish→alert, p50/p95 report script | | open | eval evidence + resume |
-| 3.4 | Eval metrics script: count MAE, precision/recall vs labels | | open | |
+| 3.3 | Latency instrumentation: capture→publish→alert, p50/p95 report script | | skip | disclosed as limitation (report §4.6): no latency artifact exists |
+| 3.4 | Eval metrics script: count MAE, precision/recall vs labels | | skip | future work together with 2.9 labeling |
 | 3.5 | Demo videos rendered offline: annotated vs detections-only side-by-side | TK | done | render.py `--stage raw=8,overlay=14,dark=10` + `--trail-seconds` (vanishing track trails) + red crossing pops; staged mp4s for tva43+tv516 in outputs/presentation/ (local) |
-| 3.6 | Report draft (structure per rubric) | | open | |
-| 3.7 | Pick + label the +3 bonus extension with repro steps | | open | candidate: benchmark table or replay determinism demo |
-| 3.8 | Contribution documentation (this file → report section) | | open | |
+| 3.6 | Report draft (structure per rubric) | CM | done | report.md (PR #49); report.pdf rendered for the ZIP |
+| 3.7 | Pick + label the +3 bonus extension with repro steps | CM | done | evaluation/extension reproducibility comparison (PR #47): validate.sh, 16 assertions, saved results |
+| 3.8 | Contribution documentation (this file → report section) | TK/CM | done | report §5 + this file |
 | 3.9 | *Nice-to-have:* corridor status strip on dashboard | | open | only if ahead |
 | 3.11 | *Nice-to-have:* enrich clip metadata with Caltrans RWIS road-weather feed (nearest station per camera) | | open | weather on camera pages is burned into video, not structured; RWIS is the structured source |
 | 3.12 | Speed-from-lane-markings design doc | TK | done | docs/speed-estimation-design.md; build is post-Aug-12 stretch |
@@ -86,8 +86,8 @@ Statuses: `open` → `WIP` → `done` (or `skip` with a note).
 
 | # | Task | Owner | Status | Notes |
 |---|------|-------|--------|-------|
-| 4.1 | Presentation slides + demo dry-run (replay-driven, sped-up event-time demo) | TK | WIP | handout is out: slot 6:24–6:32 PM, 7 min + 1 min Q&A, both speak; slides outline + assets in internal-docs/presentation/ (local); demo verified end-to-end on TK's machine Aug 13 (both checksums match CM's) |
-| 4.2 | Both partners can explain every component (walkthrough session) | TK/CM | WIP | CM's defense notes + TK's speaker prep pack in internal-docs/presentation/ (local); rehearsal pending |
-| 4.3 | **Present — Thu Aug 13, 5:30 PM** | | open | |
-| 4.4 | report.pdf final, ZIP per required structure, submit on Canvas | | open | both upload if not linked as group |
-| 4.5 | Cloud cleanup: stop VM, document teardown | | open | |
+| 4.1 | Presentation slides + demo dry-run (replay-driven, sped-up event-time demo) | TK | done | Google Slides deck with the staged detection video; demo verified end-to-end on both machines (checksums matched) |
+| 4.2 | Both partners can explain every component (walkthrough session) | TK/CM | done | CM's defense notes + TK's prep pack (local internal docs); held up in Q&A |
+| 4.3 | **Present — Thu Aug 13, 5:30 PM** | TK/CM | done | presented 6:24 PM slot, Aug 13 — went well |
+| 4.4 | report.pdf final, ZIP per required structure, submit on Canvas | TK/CM | WIP | ZIP built from git archive via internal build script; Canvas upload pending — both upload |
+| 4.5 | Cloud cleanup: stop VM, document teardown | | skip | VM intentionally left running for continued captures (TK, Aug 14); teardown deferred past course end |
