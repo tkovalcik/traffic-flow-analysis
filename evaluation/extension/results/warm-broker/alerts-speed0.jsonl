@@ -1,0 +1,1 @@
+{"alert_id":"928b20a9-d350-47c4-b2e4-2853e111bcab","camera_id":"tva43_mirror","alert_type":"camera_stale","ts_alert":"2026-08-09T18:57:30.048000Z","window_start":"2026-08-09T18:51:30.415000Z","window_end":"2026-08-09T18:57:30.048000Z","direction":null,"observed_count":null,"baseline":null,"message":"tva43_mirror: no vehicle events for 359s"}

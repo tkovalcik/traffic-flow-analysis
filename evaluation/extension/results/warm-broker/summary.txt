@@ -1,0 +1,12 @@
+run date        : 2026-08-14T07:59:22Z
+host            : Darwin 22.5.0 x86_64
+cold broker     : no (warm)
+input           : data/sample/replay_tva43_15min.jsonl
+
+metric          : SHA-1 of the sorted volume table
+speed 0         : 1bd6cba1c010d82951c9c340428dab30dbcc40ff
+speed 60        : 1bd6cba1c010d82951c9c340428dab30dbcc40ff
+no-fault        : c08531859140dc98ae60a660e96b93bc241fe31d
+
+checks passed   : 16
+checks failed   : 0
